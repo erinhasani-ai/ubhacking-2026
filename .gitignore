@@ -1,0 +1,14 @@
+# Secrets: real values live only in .env, never in git
+.env
+.env.*
+!.env.example
+
+# Personal Claude Code settings
+.claude/settings.local.json
+
+# unlazy local coordination state (its SKILL.md says keep untracked)
+.unlazy/
+.unlazy-hook-state.json
+
+# macOS
+.DS_Store
