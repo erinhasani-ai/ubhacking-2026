@@ -60,15 +60,15 @@ A ticket is not done until every one of its gates shows passing evidence here.
 
 ## T6 — Room Twin
 
-- [ ] T6.G1: The occupancy grid matches known answers on a synthetic box room (exact occupied and free counts, no holes in a two-triangle wall) and the scan header parses
+- [x] T6.G1: The occupancy grid matches known answers on a synthetic box room (exact occupied and free counts, no holes in a two-triangle wall) and the scan header parses
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core room_twin
   EXPECT: /test result: ok\. [1-9]\d* passed/
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=69c780722e177f4f5246e3afb38aca08b082df95f1c9e9b9dc16de10a2a22116; exit=0; EXPECT=matched; output-sha256=83dccce0c9a48f957ac8addc16e15f993c5d50646e79ff29f55b9468cabb02c2; output-bytes=1030; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/agent-a244c697308a7197d; path=d082171f4bb6/24 entries
 
-- [ ] T6.G2: The real scan loads as a plausible Room Twin with its location
+- [x] T6.G2: The real scan loads as a plausible Room Twin with its location
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_room
   EXPECT: /room_ok points=\d+ triangles=\d+ voxels=\d+ free_pct=\d+ size_m=\d+\.\dx\d+\.\dx\d+\.\d geo=-?\d+\.\d+,-?\d+\.\d+ heading_deg=\d+\.\d+/
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=0c07693b1e620a55fdb450315c82e5aebcaea442f9b7d3023e4e57249ace5bda; exit=0; EXPECT=matched; output-sha256=e36608b228a80c5dc75fbfc2cea33a7c4cff46bc7799791f6f1fde576a41a71e; output-bytes=167; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/agent-a244c697308a7197d; path=d082171f4bb6/24 entries
 
 ## T7 — MAVLink Drone
 
