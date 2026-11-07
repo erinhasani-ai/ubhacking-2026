@@ -111,6 +111,9 @@ exec gitleaks git --pre-commit --staged --redact --no-banner
 - The rustup installer could not write `~/.bash_profile` (owned by root here) and does not touch zsh files then. `cargo` is not on PATH in new zsh shells until `. "$HOME/.cargo/env"` is added to `~/.zshenv` (left to the user). Every gate and agent command prefixes `PATH="$HOME/.cargo/bin:$PATH"`, so nothing depends on it.
 - A cold `cargo test --workspace` took about 6.6 minutes on this Intel Mac (tokio, reqwest, tokio-postgres, mavlink). Run gates with `--timeout 600` after a dependency change.
 - aether-core must stay WebAssembly-safe: tobj's default `ahash` feature pulls in getrandom 0.3, which breaks wasm32, so tobj is used with default features off.
+- Never share `CARGO_TARGET_DIR` between two checkouts of this workspace (for example a worktree and the main checkout). Cargo gives workspace crates the same artifact names in both, so the checkouts overwrite each other's builds and tests run the other branch's code (seen with T6 and T7, 2026-11-07). Each worktree builds into its own `target/` (one cold build, about 7 minutes).
+- In a git worktree `.git` is a file, so gate T0.G2 (which looks for `.git/hooks/pre-commit`) fails there. The hook lives in the shared git directory and still runs for commits from every worktree. Keep T0/T1 evidence from the main checkout when landing a worktree branch.
+- Worktrees under `.claude/worktrees/` sit inside the main checkout, so `dotenvy::dotenv()` there finds the main checkout's `.env` by searching parent folders. Probes in a worktree therefore see the real keys; that is convenient for T2–T5 but means a worktree is not isolated from secrets.
 - `gitleaks dir .` scans gitignored files too, so it reports the real keys in `.env` once they exist. That is expected; a finding in any other file is a real leak. The commit hook scans only staged changes, and `.env` is never staged.
 
 ### Sharing work between agents

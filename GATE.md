@@ -57,3 +57,27 @@ A ticket is not done until every one of its gates shows passing evidence here.
   CHECK: node -e "const fs=require('fs');const m={'src/engine/src/lib.rs':['tiger','gemini','voice','phyphox','mavlink_link'],'src/core/src/lib.rs':['command','room_twin','vehicle']};const miss=[];for(const[f,ms]of Object.entries(m)){const s=fs.existsSync(f)?fs.readFileSync(f,'utf8'):'';for(const x of ms)if(!s.includes('pub mod '+x+';'))miss.push(f+':'+x)}if(miss.length){console.log('missing: '+miss.join(', '));process.exit(1)}console.log('stubs'+'_ready')"
   EXPECT: stubs_ready
   EVIDENCE: automatic-evidence=v1; definition-sha256=fa46dc735ca5c9fbd18bedb71bb26cd28a12c7ecd15cf744d611ac6e442ad5a4; exit=0; EXPECT=matched; output-sha256=1aa1f2668321465d836aa43851928e536c54ab04298597b23ee704d251a7213c; output-bytes=12; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=d082171f4bb6/24 entries
+
+## T6 — Room Twin
+
+- [x] T6.G1: The occupancy grid matches known answers on a synthetic box room (exact occupied and free counts, no holes in a two-triangle wall) and the scan header parses
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core room_twin
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=69c780722e177f4f5246e3afb38aca08b082df95f1c9e9b9dc16de10a2a22116; exit=0; EXPECT=matched; output-sha256=83dccce0c9a48f957ac8addc16e15f993c5d50646e79ff29f55b9468cabb02c2; output-bytes=1030; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/agent-a244c697308a7197d; path=d082171f4bb6/24 entries
+
+- [x] T6.G2: The real scan loads as a plausible Room Twin with its location
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_room
+  EXPECT: /room_ok points=\d+ triangles=\d+ voxels=\d+ free_pct=\d+ size_m=\d+\.\dx\d+\.\dx\d+\.\d geo=-?\d+\.\d+,-?\d+\.\d+ heading_deg=\d+\.\d+/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=0c07693b1e620a55fdb450315c82e5aebcaea442f9b7d3023e4e57249ace5bda; exit=0; EXPECT=matched; output-sha256=e36608b228a80c5dc75fbfc2cea33a7c4cff46bc7799791f6f1fde576a41a71e; output-bytes=167; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/agent-a244c697308a7197d; path=d082171f4bb6/24 entries
+
+## T7 — MAVLink Drone
+
+- [ ] T7.G1: The kinematic Drone model matches known answers (reaches a step setpoint at the analytic time, tilt equals atan(a/g), stays above the floor)
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core vehicle
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: pending
+
+- [ ] T7.G2: pymavlink flies the simulated Drone through the PX4 offboard sequence (offboard refused without setpoints, then arm, 1 m climb, second setpoint reached, land, auto-disarm) and Telemetry arrives at real rates
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" .venv/bin/python tests/mavlink_flight.py
+  EXPECT: /mavlink_ok refused=1 armed=1 reached=1 landed=1 att_hz=(4[5-9]|[5-9]\d) pos_hz=(2[5-9]|[3-9]\d)/
+  EVIDENCE: pending
