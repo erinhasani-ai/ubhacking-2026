@@ -1,0 +1,11 @@
+[package]
+name = "aether-wasm"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+aether-core = { version = "0.1.0", path = "../core" }
+wasm-bindgen = "0.2.130"

@@ -21,7 +21,8 @@ Single source of truth for project rules, for Claude Code, Codex, and any other 
 - Report finished work as: what changed, why, and what tests ran — in that order.
 
 ## Project facts
-- Event: UB Hacking 2026, 2026-11-07. Rules: AI coding assistants allowed; no pre-built template — all project code is written during the event.
+- Event: UB Hacking 2026, Davis Hall, University at Buffalo. Hacking ends and Devpost submissions close 2026-11-08 13:30 EST (ubhacking2026.devpost.com).
+- Rules (verified on Devpost, 2026-11-07): no project code before hacking starts; stop development at the deadline (presentation prep only after). AI tools allowed, but the submission must disclose which tools and how they were used, and credit resources. The repo must be public. Mock data, simulations and unfinished features must be clearly shown. Judging is in person: 3 minutes pitch and demo, then 2 minutes of judge questions. A demo video under 3 minutes is mandatory. Teams of 1–4.
 - Team: solo for now; may become a team. Then: one owner per directory under src/, and a pinned GitHub issue as the agent board.
 - Platform and stack: TBD — decided in the grill, then recorded here and in SPEC.md.
 - Design: one accent colour, no purple gradients, no generic template layouts, no invented stats, testimonials, logos, or customer counts. Tap targets at least 44px.
@@ -54,3 +55,5 @@ Single source of truth for project rules, for Claude Code, Codex, and any other 
 
 ## Learned rules
 - (Append every correction the user makes here: `YYYY-MM-DD — rule`, one line each.)
+- 2026-11-07 — Nothing physical: no built rigs, no physical drones, no tests on real drones. The only hardware is the laptop and an iPhone 13 Pro Max. Drone compatibility is checked in software only (pymavlink, QGroundControl, optionally PX4's simulator) and is always described as "not flown on hardware".
+- 2026-11-07 — Optional 3D flight simulators are welcome only if they run fast on the demo laptop (Intel Mac, x86_64). Measure before adopting one.

@@ -12,3 +12,8 @@
 
 # macOS
 .DS_Store
+
+# Build output, local Python environment, wasm-pack output
+target/
+.venv/
+src/wasm/pkg/
