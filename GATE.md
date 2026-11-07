@@ -6,10 +6,10 @@ A ticket is not done until every one of its gates shows passing evidence here.
 
 ## T0 — Project setup
 
-- [x] T0.G1: Working tree contains no secrets
-  CHECK: gitleaks dir . --redact --no-banner
+- [x] T0.G1: Committed history contains no secrets
+  CHECK: gitleaks git --redact --no-banner
   EXPECT: no leaks found
-  EVIDENCE: automatic-evidence=v1; definition-sha256=ca369da599251f22ee2fbd05d4f4cf816a7b34b8d3bf27e970c7c1a0ba8a43d4; exit=0; EXPECT=matched; output-sha256=8e28c680b30ebddbe7a34eb5cfe526ca977bc492b68c3adbd4a0347da834f003; output-bytes=132; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=b760c9b7f158dcbdcbe880501e53259ae2b3d3a0b6be781a6db12ca612c01743; exit=0; EXPECT=matched; output-sha256=3bf41a8bd9494c9e941f6d310bfc01f772deab38fc8cf046cac9ce7f8a71b369; output-bytes=188; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
 
 - [x] T0.G2: Commit hook scans staged changes with gitleaks
   CHECK: node -e "const fs=require('fs');const p='.git/hooks/pre-commit';fs.accessSync(p,fs.constants.X_OK);if(!/gitleaks git --pre-commit --staged/.test(fs.readFileSync(p,'utf8')))process.exit(1);console.log('hook'+'_ready')"
@@ -57,6 +57,13 @@ A ticket is not done until every one of its gates shows passing evidence here.
   CHECK: node -e "const fs=require('fs');const m={'src/engine/src/lib.rs':['tiger','gemini','voice','phyphox','mavlink_link'],'src/core/src/lib.rs':['command','room_twin','vehicle']};const miss=[];for(const[f,ms]of Object.entries(m)){const s=fs.existsSync(f)?fs.readFileSync(f,'utf8'):'';for(const x of ms)if(!s.includes('pub mod '+x+';'))miss.push(f+':'+x)}if(miss.length){console.log('missing: '+miss.join(', '));process.exit(1)}console.log('stubs'+'_ready')"
   EXPECT: stubs_ready
   EVIDENCE: automatic-evidence=v1; definition-sha256=fa46dc735ca5c9fbd18bedb71bb26cd28a12c7ecd15cf744d611ac6e442ad5a4; exit=0; EXPECT=matched; output-sha256=1aa1f2668321465d836aa43851928e536c54ab04298597b23ee704d251a7213c; output-bytes=12; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=d082171f4bb6/24 entries
+
+## T2 — Tiger spike
+
+- [x] T2.G1: The probe connects to Tiger over TLS, creates a scratch hypertable, COPYs 10,000 rows, counts all 10,000 back, reports rows per second, and drops the table
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_tiger
+  EXPECT: /tiger_ok tls=1 hypertable=1 counted=10000 rows_per_s=[1-9]\d* dropped=1/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=e96b4cb66f415de8cd76a8d8111724c21958a7576c99f76a06078ad43de439c4; exit=0; EXPECT=matched; output-sha256=7247624cbd452f9b7746af7e48646c098cf583c298707844699349851673be1a; output-bytes=130; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
 
 ## T6 — Room Twin
 

@@ -17,3 +17,6 @@
 target/
 .venv/
 src/wasm/pkg/
+
+# Agent worktrees (each has its own target/)
+.claude/worktrees/
