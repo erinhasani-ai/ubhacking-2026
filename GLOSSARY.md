@@ -1,6 +1,6 @@
 # Aether
 
-Aether is a rescue swarm commanded by voice and by pointing, flying through a copy of a real room. These are the words used in the database, the code, and the UI.
+Aether is a rescue swarm commanded by voice, by pointing, and by hand signals, flying through a copy of a real room. These are the words used in the database, the code, and the UI.
 
 ## Language
 
@@ -19,6 +19,10 @@ _Avoid_: agent, unit, bot, UAV
 **Swarm**:
 All the Drones taking part in a Mission.
 _Avoid_: fleet, squad
+
+**Launch pad**:
+The spot on a table top where the Drones wait, take off, and land, each on its own slot.
+_Avoid_: base, home, dock
 
 **Mission**:
 One run, from the Quake that starts it to the final report. A reset begins a new Mission.
@@ -49,7 +53,7 @@ The system, and the name it answers to. It responds only when what someone says 
 _Avoid_: the AI, the assistant, the bot
 
 **Command**:
-One instruction the Swarm can carry out, taken from what someone said.
+One instruction the Swarm can carry out, taken from what someone said, a Gesture, or a click.
 _Avoid_: intent, order, request
 
 **Verdict**:
@@ -57,12 +61,46 @@ The policy check's result for one Command: approved, or rejected with a reason.
 _Avoid_: decision, approval, ruling
 
 **Abort**:
-Stopping every Drone at once, without waiting for the AI. Anyone can call it, with or without the name.
+Stopping every Drone at once, without waiting for the AI. Anyone can call it, by voice with or without the name, or with a Halt.
 _Avoid_: cancel, kill, e-stop
+
+**Advance**:
+Moving the selected Drones, or all of them, one step forward in the view. Called by voice or by a Push.
+_Avoid_: push, go forward
+
+**Recall**:
+Flying the Drones back to the Launch pad and landing them. Called by voice or by a Pull.
+_Avoid_: return home, come back
 
 **Voice line**:
 The strip on screen that shows Aether listening, being addressed, understanding a Command, giving its Verdict, and speaking.
 _Avoid_: voice orb, assistant bubble, chat
+
+### Hand signals
+
+**Gesture**:
+One hand signal to the laptop's webcam that Aether acts on: Halt, Point, Pinch, Push, or Pull. The palm toward the webcam can only stop the Swarm; the back of the hand moves it.
+_Avoid_: sign, pose, hand command
+
+**Halt**:
+An open palm held still toward the webcam. It calls Abort.
+_Avoid_: stop sign, palm stop
+
+**Point**:
+The index finger held out. It moves a cursor over the Room Twin and aims like the phone in Pointer mode.
+_Avoid_: aim, finger mode
+
+**Pinch**:
+The thumb and index fingertip touching while pointing. It clicks at the cursor: a Drone is selected, a spot becomes a target.
+_Avoid_: tap, grab
+
+**Push**:
+The back of the hand moved toward the webcam. It calls Advance.
+_Avoid_: shove, forward gesture
+
+**Pull**:
+The back of the hand moved away from the webcam, toward the body. It calls Recall.
+_Avoid_: beckon, back gesture
 
 ### Honesty
 
