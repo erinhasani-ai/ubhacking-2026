@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+members = ["src/core", "src/engine", "src/wasm"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"

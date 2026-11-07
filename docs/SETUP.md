@@ -29,6 +29,8 @@ No ticket is done until its gates pass in GATE.md. Scan anything before installi
 | grill-me, grilling, grill-with-docs, domain-modeling | `mattpocock/skills` @ `4ae2317` | Project, `.claude/skills/` | The grill, without installing the whole Matt Pocock pack |
 | SkillSpector | `NVIDIA/SkillSpector` @ `e48d771` | Machine: repo in `~/.local/share/SkillSpector`, CLI linked into `~/.local/bin` | Skill security scanner |
 | gitleaks | 8.30.1 (Homebrew) | Machine, plus `.git/hooks/pre-commit` | Secret scanning on every commit |
+| Rust (rustup, stable) | rustc and cargo 1.99.1, target `wasm32-unknown-unknown` | Machine: `~/.rustup`, `~/.cargo/bin` | Engine and core (T1). Official installer from sh.rustup.rs |
+| wasm-pack | 0.15.1, prebuilt x86_64-apple-darwin binary from the wasm-bindgen/wasm-pack GitHub release | Machine: `~/.cargo/bin/wasm-pack` | Builds aether-wasm for the browser |
 | Auto-compaction | `.claude/settings.json` | Project | 60% of a 600,000-token window |
 | Ticket roles | `.claude/agents/ticket-executor.md` (Haiku), `ticket-checker.md` (Opus) | Project | Opus plans and checks, Haiku builds |
 
@@ -100,9 +102,16 @@ exec gitleaks git --pre-commit --staged --redact --no-banner
 - Its default ledger is `GATES.md`; this project uses `GATE.md` (per the original doc) and always passes the path explicitly.
 - `EXPECT:` is plain text matched as a substring of combined output; wrap it in `/pattern/flags` for a regex (a bare `\d+\.\d+` is a literal and failed here). The process must also exit 0.
 - Gate ids can be any token before the colon, so one GATE.md holds every ticket as `Tn.Gm`.
-- Approvals bind the exact command, working directory, shell, PATH, and platform. They are stored outside the repo in `~/.unlazy/approved`, so each machine and agent approves once.
+- Approvals bind the exact command, working directory, shell, PATH, timeout, and platform. They are stored outside the repo in `~/.unlazy/approved`, so each machine and agent approves once. A run with a different `--timeout` or PATH needs `--approve` again; `--approve` accepts `--timeout`.
 - Its optional Claude Code Stop hook (`install-hooks.mjs`) was **not** installed.
 - Automatic EVIDENCE lines record `cwd=<absolute path>`, which exposes the local username. Hand-editing evidence invalidates it. Options before a public push: accept it, or run gates from a checkout whose path holds no personal name.
+
+### Rust toolchain (T1, 2026-11-07)
+- Homebrew has no bottles for rustup or wasm-pack on Intel macOS (it would compile them, and Rust itself, from source). Use the official rustup installer and the prebuilt wasm-pack release binary.
+- The rustup installer could not write `~/.bash_profile` (owned by root here) and does not touch zsh files then. `cargo` is not on PATH in new zsh shells until `. "$HOME/.cargo/env"` is added to `~/.zshenv` (left to the user). Every gate and agent command prefixes `PATH="$HOME/.cargo/bin:$PATH"`, so nothing depends on it.
+- A cold `cargo test --workspace` took about 6.6 minutes on this Intel Mac (tokio, reqwest, tokio-postgres, mavlink). Run gates with `--timeout 600` after a dependency change.
+- aether-core must stay WebAssembly-safe: tobj's default `ahash` feature pulls in getrandom 0.3, which breaks wasm32, so tobj is used with default features off.
+- `gitleaks dir .` scans gitignored files too, so it reports the real keys in `.env` once they exist. That is expected; a finding in any other file is a real leak. The commit hook scans only staged changes, and `.env` is never staged.
 
 ### Sharing work between agents
 - `AGENTS.md` holds the rules for every agent; `CLAUDE.md` imports it with `@AGENTS.md`, so the rules exist once.
