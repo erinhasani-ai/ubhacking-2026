@@ -72,12 +72,12 @@ A ticket is not done until every one of its gates shows passing evidence here.
 
 ## T7 — MAVLink Drone
 
-- [ ] T7.G1: The kinematic Drone model matches known answers (reaches a step setpoint at the analytic time, tilt equals atan(a/g), stays above the floor)
+- [x] T7.G1: The kinematic Drone model matches known answers (reaches a step setpoint at the analytic time, tilt equals atan(a/g), stays above the floor)
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core vehicle
   EXPECT: /test result: ok\. [1-9]\d* passed/
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=9ef344429af54b7ddd93ed4c7407f421b02036bc17e49cb2a0ba09a0fa0b1408; exit=0; EXPECT=matched; output-sha256=5b121faab2f99b7d7516b74e67f75efb7eea2cacd901b1773792d9b609cb0608; output-bytes=610; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
 
-- [ ] T7.G2: pymavlink flies the simulated Drone through the PX4 offboard sequence (offboard refused without setpoints, then arm, 1 m climb, second setpoint reached, land, auto-disarm) and Telemetry arrives at real rates
+- [x] T7.G2: pymavlink flies the simulated Drone through the PX4 offboard sequence (offboard refused without setpoints, then arm, 1 m climb, second setpoint reached, land, auto-disarm) and Telemetry arrives at real rates
   CHECK: PATH="$HOME/.cargo/bin:$PATH" .venv/bin/python tests/mavlink_flight.py
   EXPECT: /mavlink_ok refused=1 armed=1 reached=1 landed=1 att_hz=(4[5-9]|[5-9]\d) pos_hz=(2[5-9]|[3-9]\d)/
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=bc55814e9f0cf0638925e40c5b6f5cf6fb4ef57b181b54769f8df0c39032e083; exit=0; EXPECT=matched; output-sha256=3e405f957deb85cdbc585e381743e5f4e45b1b6481ce2a29a84c18f99d2d43ee; output-bytes=68; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
