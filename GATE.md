@@ -103,15 +103,15 @@ A ticket is not done until every one of its gates shows passing evidence here.
 
 ## T10 — Distance field and 3D path search
 
-- [ ] T10.G1: The distance field equals brute force on small grids, and the path search gives the straight-line length in an empty box, the known detour around a wall, no path through occupied cells, and reports an unreachable goal
+- [x] T10.G1: The distance field equals brute force on small grids, and the path search gives the straight-line length in an empty box, the known detour around a wall, no path through occupied cells, and reports an unreachable goal
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core planner::
   EXPECT: /test result: ok\. [1-9]\d* passed/
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=96d732e7564dce32adea21ef04d4f4955665d39a653ae995a8b276f0fcf415ed; exit=0; EXPECT=matched; output-sha256=8fb54125de3b98c5ec98afb7ba1c005c241912cf7a0b86ee614fa65afc7a4518; output-bytes=896; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t10-planner; path=d082171f4bb6/24 entries
 
-- [ ] T10.G2: On the real scan, a path across the room keeps at least 0.35 m clearance everywhere, and its length, the straight-line distance and the search time are reported
+- [x] T10.G2: On the real scan, a path across the room keeps at least 0.35 m clearance everywhere, and its length, the straight-line distance and the search time are reported
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_path
   EXPECT: /path_ok length_m=\d+\.\d+ straight_m=\d+\.\d+ min_clearance_m=(0\.(3[5-9]|[4-9]\d)|[1-9])\d* ms=\d+/
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=40909ddd3b2af0a0d01d7be53464c8bc87d25b1588f8461e0754ffe16013a4ed; exit=0; EXPECT=matched; output-sha256=da1f1f15eb8dec985789a0d12f17cf8112ce5c9517893e3370b77866b1f1c733; output-bytes=281; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t10-planner; path=d082171f4bb6/24 entries
 ## T5 — phyphox spike
 
 - [x] T5.G1: The phyphox reply parser, on fixture replies, keeps only new samples and notices a changed session
