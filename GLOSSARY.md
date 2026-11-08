@@ -25,7 +25,7 @@ All the Drones taking part in a Mission.
 _Avoid_: fleet, squad
 
 **Launch pad**:
-The spot on a table top where the Drones wait, take off, and land, each on its own slot.
+The clear patch of floor where the Drones wait, take off, and land, each on its own slot.
 _Avoid_: base, home, dock
 
 **Mission**:
