@@ -227,3 +227,20 @@ A ticket is not done until every one of its gates shows passing evidence here.
 
 - [x] T31.G3: The user names and confirms each Place against the map (manual)
   EVIDENCE: User confirmed all four names against the displayed test-room map on 2026-11-08; actual demo location remains unknown.
+
+## T13 — Mission control and Verdict
+
+- [x] T13.G1: The policy check matches known answers: a free target inside the Room Twin with enough idle Drones is approved; an occupied target, one outside the Room Twin, an unknown Place (the reason names the known ones) and too few idle Drones are rejected with their reasons; a surface hit becomes a hover point 0.5 m above it
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core policy::
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=8b395e7b1961d1ff5aec2dfbd4dbc5374cd0c06c6d46050a39c45d0fd408c04c; exit=0; EXPECT=matched; output-sha256=f699f88457d886932d00e0b042ff15ffb1030cbcbefce242255324a8972c016e; output-bytes=1302; shell=/bin/sh; cwd=~/Documents/UBHacking2026; path=d0822520b261/32 entries
+
+- [x] T13.G2: Against sim_swarm in the real Room Twin, two Drones dispatched to a free point both arrive within the bound, no pair comes closer than 0.5 m, no sample is in an occupied voxel, an occupied target is rejected with its reason, and Abort holds every Drone within 1 s, then lands them
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-engine --test mission_dispatch
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=529369eca5f481fa463d33512c6b9f9b37da7e7f34970228b2803e9d8a994a1b; exit=0; EXPECT=matched; output-sha256=42c8d212e6ad46b5c28e29cc98ecfb11628ce4426fc129a28ff84767427a820d; output-bytes=445; shell=/bin/sh; cwd=~/Documents/UBHacking2026; path=d0822520b261/32 entries
+
+- [x] T13.G3: Mission helpers preserve goal spacing and clearance, select shortest assignments, reject unreachable routes, stop within one second, and discard pre-Abort plans without disturbing a newer plan
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-engine --lib mission::
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=5f60bb80736e17a45f2e61dcc93025e478aae7c6701a594424fb17c367602796; exit=0; EXPECT=matched; output-sha256=00fc9901fa9945f2e8c9207e1472aab9e59335670e05ee8366e2d4fa9a7dcacf; output-bytes=867; shell=/bin/sh; cwd=~/Documents/UBHacking2026; path=d0822520b261/32 entries

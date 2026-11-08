@@ -2,6 +2,8 @@
 
 Format: `YYYY-MM-DD | Tn | what shipped | gate result`
 
+- 2026-11-08 | T13 | Recovered policy and mission controller; asynchronous route planning, shortest assignment, ORCA-shaped setpoints and priority Abort; fixed arrival-to-follow-up-command race and protected newer plans from pre-Abort results | Ticket-scoped gate-check --reverify exit 0, T13.G1–G3 met: 14 policy tests, 6 mission tests, real-scan two-Drone dispatch/obstacle rejection/separation/Abort/landing integration. No hardware flight.
+
 - 2026-11-08 | T31 | Recovered Claude's compiled Named Places and scan-map probe; door, table, middle and west corner are confirmed for the test scan, with unknown-name lookup errors listing known Places | Ticket-scoped gate-check exit 0, T31.G1–G3 met; 5 unit tests and real-scan clearance probe passed; user confirmed the displayed test-room map. Demo room remains unknown.
 
 - 2026-11-08 | T9b | Optional `sim_swarm --room` shares the scanned occupancy grid and samples the surface below each Drone every physics step; shared six-slot Launch pad, floor band, table landing, validated CLI options | Ticket-scoped gate-check --reverify exit 0, T9b.G1–G2 met (6 tests); existing six-Drone arm/climb/hold/land/disarm integration passed. Whole-ledger T5.G2 remains pending because the live phone is unreachable.
