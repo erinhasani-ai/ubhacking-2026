@@ -100,3 +100,15 @@ A ticket is not done until every one of its gates shows passing evidence here.
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo build --workspace && PATH="$HOME/.cargo/bin:$PATH" cargo build -p aether-wasm --target wasm32-unknown-unknown && echo "build"_ok
   EXPECT: build_ok
   EVIDENCE: automatic-evidence=v1; definition-sha256=265ddc570007970cd30af7a31f591985c85c3c469b7cf46e67a4a783d735b3c5; exit=0; EXPECT=matched; output-sha256=f79d7c9d2655adda1b2e7aeb2ff4e62ce74e50bdd9b02ee0e22d5682278b05dc; output-bytes=154; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
+
+## T4 — Voice spike
+
+- [ ] T4.G1: On recorded replies, the ElevenLabs character timings and the Scribe partial and committed transcripts with word timestamps parse to known answers
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-engine voice::
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: pending
+
+- [ ] T4.G2: Live, ElevenLabs speaks a fixed sentence with character timestamps, Scribe v2 Realtime hears that audio after a manual commit with "drones" and word timestamps in the transcript, and both latencies are reported
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_voice
+  EXPECT: /voice_ok tts_ms=[1-9]\d* chars=[1-9]\d* stt_ms=[1-9]\d* words=[1-9]\d* drones_at_ms=\d+/
+  EVIDENCE: pending
