@@ -103,14 +103,14 @@ A ticket is not done until every one of its gates shows passing evidence here.
 
 ## T8 — Mission frame and Launch pad
 
-- [ ] T8.G1: The Mission frame matches known answers: scan to Mission and back is exact, N × E = D (right-handed), and the Launch pad maps to (0, 0, −table height)
+- [ ] T8.G1: The Mission frame matches known answers: scan to Mission and back is exact, N × E = D (right-handed), the Launch pad centre maps to (0, 0, 0), and the six slots are 0.6 m apart
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core frame::
   EXPECT: /test result: ok\. [1-9]\d* passed/
   EVIDENCE: pending
 
-- [ ] T8.G2: On the real scan, the Launch pad sits on a level occupied table top at table height, with free space above it for six pad slots 0.4 m apart
+- [ ] T8.G2: On the real scan, the Launch pad sits on a level, clear floor patch on the north half of the room, with free space around and above each of six pad slots 0.6 m apart
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_pad
-  EXPECT: /pad_ok table_height_m=(0\.[5-9]|1\.0)\d* level_mm=\d+ slots_free=6/
+  EXPECT: /pad_ok floor_level_mm=([0-9]|[12][0-9]|30) slots_free=6 clear_m=\d+\.\d+/
   EVIDENCE: pending
 ## T5 — phyphox spike
 
