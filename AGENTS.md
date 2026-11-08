@@ -54,6 +54,7 @@ Single source of truth for project rules, for Claude Code, Codex, and any other 
 | Initial_setup/ | Original research doc. Where it disagrees with docs/SETUP.md, docs/SETUP.md wins |
 
 ## Learned rules
+- 2026-11-08 — The current scan and confirmed Places are the test room; the actual demo location is not yet known. Do not describe the scan as the judging room without confirming it. Revalidate the Launch pad and Places if the scan changes.
 - (Append every correction the user makes here: `YYYY-MM-DD — rule`, one line each.)
 - 2026-11-07 — Nothing physical: no built rigs, no physical drones, no tests on real drones. The only hardware is the laptop and an iPhone 13 Pro Max. Drone compatibility is checked in software only (pymavlink, QGroundControl, optionally PX4's simulator) and is always described as "not flown on hardware".
 - 2026-11-07 — Optional 3D flight simulators are welcome only if they run fast on the demo laptop (Intel Mac, x86_64). Measure before adopting one.

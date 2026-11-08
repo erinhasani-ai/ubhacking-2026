@@ -212,3 +212,18 @@ A ticket is not done until every one of its gates shows passing evidence here.
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core ray_history::
   EXPECT: /test result: ok\. [1-9]\d* passed/
   EVIDENCE: automatic-evidence=v1; definition-sha256=d9bc531a7845c01e81312db4c1438528507d307e569e8f4ee0def840eaab1956; exit=0; EXPECT=matched; output-sha256=b8caac3ee294cb6df8145556688dd0867d6a03900b5f07067cd88da01e106cad; output-bytes=830; shell=/bin/sh; cwd=~/Documents/UBHacking2026/.claude/worktrees/t20-rays; path=d082171f4bb6/24 entries
+
+## T31 — Named Places
+
+- [x] T31.G1: The Place list parses, names are lowercase and unique, lookup is exact after trimming and lowercasing, and an unknown name returns the known names
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core places::
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=28220e45cef167b084bed3dbc222c0c04d13848bad266cff0767c4d0022f25df; exit=0; EXPECT=matched; output-sha256=4b03c14134946400b0df21b855f91ca3b4504a98d13be69c9f8cce8effab1002; output-bytes=574; shell=/bin/sh; cwd=~/Documents/UBHacking2026; path=d0822520b261/32 entries
+
+- [x] T31.G2: On the real scan every Place is inside the Room Twin, in free space, with at least 0.35 m clearance from the distance field, and the top-down map is written
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_places
+  EXPECT: /places_ok places=[1-9]\d* min_clearance_m=\d+\.\d+ map=written/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=749456f746c4b0e04d5b3ad5b71c956fb70a093db1735ec380dd262c657ad8c4; exit=0; EXPECT=matched; output-sha256=0a72e06a43ef7eb92260f103814e94b023704ee06fed8d3667c40f849398f81e; output-bytes=52; shell=/bin/sh; cwd=~/Documents/UBHacking2026; path=d0822520b261/32 entries
+
+- [x] T31.G3: The user names and confirms each Place against the map (manual)
+  EVIDENCE: User confirmed all four names against the displayed test-room map on 2026-11-08; actual demo location remains unknown.
