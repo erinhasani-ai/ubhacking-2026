@@ -103,15 +103,15 @@ A ticket is not done until every one of its gates shows passing evidence here.
 
 ## T4 — Voice spike
 
-- [ ] T4.G1: On recorded replies, the ElevenLabs character timings and the Scribe partial and committed transcripts with word timestamps parse to known answers
+- [x] T4.G1: On recorded replies, the ElevenLabs character timings and the Scribe partial and committed transcripts with word timestamps parse to known answers
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-engine voice::
   EXPECT: /test result: ok\. [1-9]\d* passed/
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=59958c4e9fc5a46ec952ebd6ca00621c32d80d0bac8e58cdffae17eb5502e6fb; exit=0; EXPECT=matched; output-sha256=8cc5ee20d405e01dddfddca1125cd671c65bffa3547848ee0cdfe084e8046a23; output-bytes=1992; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t4-voice; path=441ef2ff855b/30 entries
 
-- [ ] T4.G2: Live, ElevenLabs speaks a fixed sentence with character timestamps, Scribe v2 Realtime hears that audio after a manual commit with "drones" and word timestamps in the transcript, and both latencies are reported
+- [x] T4.G2: Live, ElevenLabs speaks a fixed sentence with character timestamps, Scribe v2 Realtime hears that audio after a manual commit with "drones" and word timestamps in the transcript, and both latencies are reported
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_voice
   EXPECT: /voice_ok tts_ms=[1-9]\d* chars=[1-9]\d* stt_ms=[1-9]\d* words=[1-9]\d* drones_at_ms=\d+/
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=7bcc056699222ac4a2dd14255f25b4ed952987219f4b63c1c8edc6e16df02219; exit=0; EXPECT=matched; output-sha256=83a8cad56d60fbf3da6e17169bbb9a5f7ab5739e1410636d8b3aaf01feddd4d4; output-bytes=66; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t4-voice; path=441ef2ff855b/30 entries
 ## T5 — phyphox spike
 
 - [x] T5.G1: The phyphox reply parser, on fixture replies, keeps only new samples and notices a changed session
