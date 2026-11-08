@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 /// Drones in one Swarm; the limit for counts and drone ids.
 pub const SWARM_SIZE: u8 = 6;
 
-/// One instruction the Swarm can carry out. Parse it only with `Command::from_json`.
+/// One instruction the Swarm can carry out. `Command::from_json` is the only validated entry point:
+/// deriving `Deserialize` (e.g. `serde_json::from_str::<Command>`) skips validation and accepts arrays for objects.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Command {
@@ -80,7 +81,9 @@ pub struct Point {
 impl Command {
     /// Parses and validates one Command. Every source must go through here.
     pub fn from_json(json: &str) -> Result<Command, String> {
-        let command: Command = serde_json::from_str(json).map_err(|e| e.to_string())?;
+        let value: serde_json::Value = serde_json::from_str(json).map_err(|e| e.to_string())?;
+        reject_arrays(&value, false)?;
+        let command: Command = serde_json::from_value(value).map_err(|e| e.to_string())?;
         command.validate()?;
         Ok(command)
     }
@@ -144,6 +147,20 @@ impl Target {
     }
 }
 
+// serde's derived struct Deserialize also takes JSON arrays field by field; the only array on the wire is the value of "ids".
+fn reject_arrays(value: &serde_json::Value, is_ids: bool) -> Result<(), String> {
+    match value {
+        serde_json::Value::Array(items) => {
+            if !is_ids {
+                return Err("arrays are only allowed as the value of ids".into());
+            }
+            items.iter().try_for_each(|v| reject_arrays(v, false))
+        }
+        serde_json::Value::Object(map) => map.iter().try_for_each(|(k, v)| reject_arrays(v, k == "ids")),
+        _ => Ok(()),
+    }
+}
+
 fn in_swarm(id: u8) -> Result<(), String> {
     if (1..=SWARM_SIZE).contains(&id) {
         Ok(())
@@ -177,6 +194,15 @@ mod tests {
         round_trips(json!({"kind": "advance", "drones": "all"}));
         round_trips(json!({"kind": "recall", "drones": {"ids": [6]}}));
         round_trips(json!({"kind": "abort"}));
+    }
+
+    #[test]
+    fn arrays_are_rejected_except_as_ids() {
+        rejected(json!({"kind": "advance", "drones": [2]}));
+        rejected(json!({"kind": "advance", "drones": [[1, 3]]}));
+        rejected(json!({"kind": "dispatch", "drones": "all", "target": ["door"]}));
+        rejected(json!({"kind": "dispatch", "drones": "all", "target": [[1, 2, 3]]}));
+        rejected(json!({"kind": "dispatch", "drones": "all", "target": {"point": [1, 2, 3]}}));
     }
 
     #[test]

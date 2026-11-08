@@ -21,9 +21,9 @@ fn declarations() -> Value {
     json!([
         {"name": "dispatch", "description": "Send Drones from the Launch pad to a target.",
          "parameters": {"type": "OBJECT", "properties": dispatch}},
-        {"name": "advance", "description": "Advance the Drones to the next step of their task.",
+        {"name": "advance", "description": "Move the Drones one step forward in the view, one metre along the map view's horizontal forward.",
          "parameters": {"type": "OBJECT", "properties": drone_params()}},
-        {"name": "recall", "description": "Bring the Drones back to the Launch pad.",
+        {"name": "recall", "description": "Fly the Drones back to the Launch pad and land them.",
          "parameters": {"type": "OBJECT", "properties": drone_params()}}
     ])
 }
@@ -116,8 +116,8 @@ mod tests {
 
     // Trimmed copies of live generateContent replies from gemini-3.6-flash (thoughtSignature and usage removed).
     const DISPATCH_REPLY: &str = r#"{"candidates":[{"content":{"parts":[{"functionCall":{"name":"dispatch","args":{"drone_count":2,"place":"door"},"id":"call_4541055487298339433"}}],"role":"model"},"finishReason":"STOP","index":0}]}"#;
-    // Live reply to "Aether, the weather is nice today": no parts at all.
-    const TEXT_ONLY_REPLY: &str = r#"{"candidates":[{"content":{},"finishReason":"STOP","index":0}],"modelVersion":"gemini-3.6-flash"}"#;
+    // Hand-written (not a live capture): a reply with a real text part and no function call.
+    const TEXT_ONLY_REPLY: &str = r#"{"candidates":[{"content":{"parts":[{"text":"That is not a command for the swarm."}],"role":"model"},"finishReason":"STOP","index":0}]}"#;
     // Live reply to "Aether, send drone four there": drone ids and the pointing flag.
     const THERE_REPLY: &str = r#"{"candidates":[{"content":{"parts":[{"functionCall":{"name":"dispatch","args":{"drone_ids":[4],"there":true},"id":"call_9540850045841806604"}}],"role":"model"},"finishReason":"STOP","index":0}]}"#;
     // Live reply to "Aether, bring drone two home and land it": both count and ids, which must be rejected.
