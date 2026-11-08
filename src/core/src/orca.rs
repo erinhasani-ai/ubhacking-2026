@@ -18,7 +18,7 @@ use glam::DVec3;
 
 /// One Drone as ORCA sees it.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Agent {
+pub struct DroneState {
     pub position: [f64; 3],
     pub velocity: [f64; 3],
     /// Safety radius (SPEC: 0.3 m).
@@ -41,26 +41,26 @@ struct Line {
     direction: DVec3,
 }
 
-/// The velocity `agent` should fly next, avoiding `neighbours` (which exclude `agent`; the caller
+/// The velocity `drone` should fly next, avoiding `neighbours` (which exclude `drone`; the caller
 /// picks who is near) for `time_horizon` seconds. `time_step` is the control step; it only matters
 /// when two Drones already overlap, where the overlap is resolved within one step. Never faster
-/// than `agent.max_speed`.
-pub fn new_velocity(agent: &Agent, neighbours: &[Agent], time_horizon: f64, time_step: f64) -> [f64; 3] {
+/// than `drone.max_speed`.
+pub fn new_velocity(drone: &DroneState, neighbours: &[DroneState], time_horizon: f64, time_step: f64) -> [f64; 3] {
     debug_assert!(time_horizon > 0.0 && time_step > 0.0);
-    let planes: Vec<Plane> = neighbours.iter().map(|other| orca_plane(agent, other, 1.0 / time_horizon, 1.0 / time_step)).collect();
-    let (failed, mut result) = linear_program3(&planes, agent.max_speed, DVec3::from_array(agent.pref_velocity), false);
+    let planes: Vec<Plane> = neighbours.iter().map(|other| orca_plane(drone, other, 1.0 / time_horizon, 1.0 / time_step)).collect();
+    let (failed, mut result) = linear_program3(&planes, drone.max_speed, DVec3::from_array(drone.pref_velocity), false);
     if failed < planes.len() {
-        result = linear_program4(&planes, failed, agent.max_speed, result);
+        result = linear_program4(&planes, failed, drone.max_speed, result);
     }
     result.to_array()
 }
 
-fn orca_plane(agent: &Agent, other: &Agent, inv_time_horizon: f64, inv_time_step: f64) -> Plane {
-    let velocity = DVec3::from_array(agent.velocity);
-    let rel_pos = DVec3::from_array(other.position) - DVec3::from_array(agent.position);
+fn orca_plane(drone: &DroneState, other: &DroneState, inv_time_horizon: f64, inv_time_step: f64) -> Plane {
+    let velocity = DVec3::from_array(drone.velocity);
+    let rel_pos = DVec3::from_array(other.position) - DVec3::from_array(drone.position);
     let rel_vel = velocity - DVec3::from_array(other.velocity);
     let dist_sq = rel_pos.length_squared();
-    let combined_radius = agent.radius + other.radius;
+    let combined_radius = drone.radius + other.radius;
     let combined_radius_sq = combined_radius * combined_radius;
 
     // `u` = magnitude * normal.
@@ -277,9 +277,9 @@ mod tests {
     /// Plain integrator: every step all Drones pick their ORCA velocity from the same state, then move.
     /// Also checks that no chosen velocity is non-finite or above max speed.
     fn simulate(starts: &[DVec3], goals: &[DVec3], max_time_s: f64) -> Run {
-        let mut drones: Vec<Agent> = starts
+        let mut drones: Vec<DroneState> = starts
             .iter()
-            .map(|p| Agent { position: p.to_array(), velocity: [0.0; 3], radius: R, max_speed: MAX_SPEED, pref_velocity: [0.0; 3] })
+            .map(|p| DroneState { position: p.to_array(), velocity: [0.0; 3], radius: R, max_speed: MAX_SPEED, pref_velocity: [0.0; 3] })
             .collect();
         let n = drones.len();
         let mut min_separation = f64::INFINITY;
@@ -304,7 +304,7 @@ mod tests {
             }
             let chosen: Vec<[f64; 3]> = (0..n)
                 .map(|i| {
-                    let others: Vec<Agent> = (0..n).filter(|&j| j != i).map(|j| drones[j]).collect();
+                    let others: Vec<DroneState> = (0..n).filter(|&j| j != i).map(|j| drones[j]).collect();
                     new_velocity(&drones[i], &others, TAU, DT)
                 })
                 .collect();
@@ -355,8 +355,8 @@ mod tests {
         }
     }
 
-    fn lone(pref_velocity: [f64; 3]) -> Agent {
-        Agent { position: [1.0, 2.0, HEIGHT_Z], velocity: [0.2, 0.0, 0.0], radius: R, max_speed: MAX_SPEED, pref_velocity }
+    fn lone(pref_velocity: [f64; 3]) -> DroneState {
+        DroneState { position: [1.0, 2.0, HEIGHT_Z], velocity: [0.2, 0.0, 0.0], radius: R, max_speed: MAX_SPEED, pref_velocity }
     }
 
     #[test]
@@ -374,8 +374,8 @@ mod tests {
     #[test]
     fn exact_head_on_at_speed_brakes_instead_of_failing() {
         // Relative velocity exactly on the cone axis: RVO2-3D would divide by zero here.
-        let me = Agent { position: [0.0, 0.0, HEIGHT_Z], velocity: [1.5, 0.0, 0.0], radius: R, max_speed: MAX_SPEED, pref_velocity: [1.5, 0.0, 0.0] };
-        let other = Agent { position: [2.0, 0.0, HEIGHT_Z], velocity: [-1.5, 0.0, 0.0], pref_velocity: [-1.5, 0.0, 0.0], ..me };
+        let me = DroneState { position: [0.0, 0.0, HEIGHT_Z], velocity: [1.5, 0.0, 0.0], radius: R, max_speed: MAX_SPEED, pref_velocity: [1.5, 0.0, 0.0] };
+        let other = DroneState { position: [2.0, 0.0, HEIGHT_Z], velocity: [-1.5, 0.0, 0.0], pref_velocity: [-1.5, 0.0, 0.0], ..me };
         let v = DVec3::from_array(new_velocity(&me, &[other], TAU, DT));
         // Half of the closing speed that reaches the front of the cutoff sphere: ((2 - 0.6) / 2 s) / 2.
         assert!((v - DVec3::new(0.35, 0.0, 0.0)).length() < 1e-12, "{v}");
@@ -385,9 +385,9 @@ mod tests {
     fn overlapping_on_both_sides_minimises_the_worst_penetration() {
         // Neighbours overlap at +x (0.35 m) and -x (0.5 m): no velocity satisfies both planes, so
         // linear program 4 balances them: v_x <= -2.5 and v_x >= 1 are each missed by 1.75 at v_x = -0.75.
-        let me = Agent { position: [0.0, 0.0, HEIGHT_Z], velocity: [0.0; 3], radius: R, max_speed: MAX_SPEED, pref_velocity: [0.0; 3] };
-        let right = Agent { position: [0.35, 0.0, HEIGHT_Z], ..me };
-        let left = Agent { position: [-0.5, 0.0, HEIGHT_Z], ..me };
+        let me = DroneState { position: [0.0, 0.0, HEIGHT_Z], velocity: [0.0; 3], radius: R, max_speed: MAX_SPEED, pref_velocity: [0.0; 3] };
+        let right = DroneState { position: [0.35, 0.0, HEIGHT_Z], ..me };
+        let left = DroneState { position: [-0.5, 0.0, HEIGHT_Z], ..me };
         let v = DVec3::from_array(new_velocity(&me, &[right, left], TAU, DT));
         assert!((v - DVec3::new(-0.75, 0.0, 0.0)).length() < 1e-9, "{v}");
     }
@@ -402,8 +402,8 @@ mod tests {
         };
         for _ in 0..200 {
             let mut rand3 = |scale: f64| [next() * scale, next() * scale, next() * scale];
-            let me = Agent { position: [0.0; 3], velocity: rand3(1.5), radius: R, max_speed: MAX_SPEED, pref_velocity: rand3(3.0) };
-            let crowd: Vec<Agent> = (0..8).map(|_| Agent { position: rand3(1.5), velocity: rand3(1.5), ..me }).collect();
+            let me = DroneState { position: [0.0; 3], velocity: rand3(1.5), radius: R, max_speed: MAX_SPEED, pref_velocity: rand3(3.0) };
+            let crowd: Vec<DroneState> = (0..8).map(|_| DroneState { position: rand3(1.5), velocity: rand3(1.5), ..me }).collect();
             let v = DVec3::from_array(new_velocity(&me, &crowd, TAU, DT));
             assert!(v.is_finite() && v.length() <= MAX_SPEED + 1e-9, "{v}");
         }
