@@ -66,6 +66,8 @@ pub enum CommandError {
     Denied(MavResult),
     /// Nothing heard from this system id yet, so there is no address to send to.
     UnknownDrone(u8),
+    /// The local mission reset cancelled its pending command.
+    Cancelled,
 }
 
 impl fmt::Display for CommandError {
@@ -74,6 +76,7 @@ impl fmt::Display for CommandError {
             CommandError::Timeout => write!(f, "no COMMAND_ACK after every attempt"),
             CommandError::Denied(result) => write!(f, "command denied: {result:?}"),
             CommandError::UnknownDrone(id) => write!(f, "no packet from Drone {id} yet"),
+            CommandError::Cancelled => write!(f, "command cancelled by reset"),
         }
     }
 }
@@ -275,6 +278,13 @@ impl Gcs {
         };
     }
 
+    /// Stops all setpoints and wakes pending command retries with cancellation.
+    pub fn reset_control(&self) {
+        let mut state = self.inner.state.lock().unwrap();
+        state.targets.clear();
+        state.pending.clear();
+    }
+
     /// Sends COMMAND_LONG and waits for the COMMAND_ACK with the same system id and command id,
     /// resending up to `attempts` times.
     pub async fn command(&self, system: u8, command: MavCmd, params: [f32; 7]) -> Result<(), CommandError> {
@@ -302,6 +312,7 @@ impl Gcs {
             match tokio::time::timeout(self.ack_timeout, &mut ack).await {
                 Ok(Ok(MavResult::MAV_RESULT_ACCEPTED)) => return Ok(()),
                 Ok(Ok(result)) => return Err(CommandError::Denied(result)),
+                Ok(Err(_)) => return Err(CommandError::Cancelled),
                 _ => {} // no ACK yet: send again
             }
         }
@@ -512,6 +523,26 @@ mod tests {
             .collect();
         assert_eq!(confirmations, vec![0, 1, 2]);
         assert_eq!(gcs.arm(9).await, Err(CommandError::UnknownDrone(9)));
+    }
+
+    #[tokio::test]
+    async fn reset_cancels_unacknowledged_commands_and_clears_setpoints() {
+        let (mut gcs, drone) = station_and_drone().await;
+        gcs.ack_timeout = Duration::from_millis(100);
+        gcs.set_target(1, Some([0.0, 0.0, -1.0]));
+        let reset = async {
+            let mut buf = [0u8; 512];
+            loop {
+                let (n, _) = tokio::time::timeout(Duration::from_secs(2), drone.recv_from(&mut buf)).await.unwrap().unwrap();
+                if parse(&buf[..n]).iter().any(|(_, m)| matches!(m, MavMessage::COMMAND_LONG(_))) { break; }
+            }
+            gcs.reset_control();
+            assert!(gcs.inner.state.lock().unwrap().targets.is_empty());
+        };
+        let (result, _) = tokio::join!(gcs.arm(1), reset);
+        assert_eq!(result, Err(CommandError::Cancelled));
+        let after = received(&drone, Duration::from_millis(350)).await;
+        assert!(!after.iter().any(|m| matches!(m, MavMessage::COMMAND_LONG(_))), "arm retried after reset");
     }
 
     #[tokio::test]

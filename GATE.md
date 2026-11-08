@@ -244,3 +244,20 @@ A ticket is not done until every one of its gates shows passing evidence here.
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-engine --lib mission::
   EXPECT: /test result: ok\. [1-9]\d* passed/
   EVIDENCE: automatic-evidence=v1; definition-sha256=5f60bb80736e17a45f2e61dcc93025e478aae7c6701a594424fb17c367602796; exit=0; EXPECT=matched; output-sha256=00fc9901fa9945f2e8c9207e1472aab9e59335670e05ee8366e2d4fa9a7dcacf; output-bytes=867; shell=/bin/sh; cwd=~/Documents/UBHacking2026; path=d0822520b261/32 entries
+
+## T14 — Live stream to the browser
+
+- [x] T14.G1: With a stand-in mission and sim_swarm, a WebSocket client gets hello first, then one binary point-cloud frame, then state frames for 6 Drones at 25 Hz or more; a command gets its verdict, a reset is passed on, and unknown message types are ignored
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-engine --test ws_server
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=54f08c8d639e1ced99b1db6a4a36e0dbaefc103c8e8780690e3cd0d1e446588f; exit=0; EXPECT=matched; output-sha256=c9441bf851eb48c57eb3f1d8aaca34bc83be045f24dd38e155b445344db58b32; output-bytes=394; shell=/bin/sh; cwd=~/Documents/UBHacking2026; path=d0822520b261/32 entries
+
+- [x] T14.G2: Against the real `aether` binary (after T13), a Node client receives frames for 6 Drones at 25 Hz or more gets real policy rejection and approval, observes dispatched Drones climb, resets them disarmed to the pad within 5 s, and dispatches again without stale work
+  CHECK: node tests/ws_stream.mjs
+  EXPECT: /ws_ok drones=6 hz=(2[5-9]|[3-9]\d) verdict=1/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=307fd4cd95dd359772569d0132cdedb79ca6abe9221a138898863f3a3fbb9883; exit=0; EXPECT=matched; output-sha256=408450b81baba1248b30f2f43305bb215cdcd49880e2a0e74ab401c6363e6ad5; output-bytes=80; shell=/bin/sh; cwd=~/Documents/UBHacking2026; path=d0822520b261/32 entries
+
+- [x] T14.G3: Engine unit tests pass, including cancellation of an unacknowledged arm command and clearing setpoints on reset
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-engine --lib
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=3a8f61d9c4dad2d6c37436f1b069f810eed5dbb022e72d605ce47d63b878a3fc; exit=0; EXPECT=matched; output-sha256=3557ec2c71bd483c9f71f184704dda8753587ab3dd05bf3ae6e46201e0648089; output-bytes=2960; shell=/bin/sh; cwd=~/Documents/UBHacking2026; path=d0822520b261/32 entries

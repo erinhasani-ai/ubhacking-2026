@@ -44,11 +44,17 @@ Gate-command approvals live per machine in `~/.unlazy/approved`. The receiving a
 
 ## Latest handoff
 
-### Handoff — 2026-11-07 17:10 — from Claude Code to Claude Code (new session)
-- Ticket / branch: T5 on `t5-phyphox` — state: not started. Its entry and the two gates the user approved are in SPEC.md (T5); copy the gates into GATE.md when T5 starts.
-- Done since last handoff: T1, T6, T7 landed on main (PROGRESS.md). Plan T8–T30 in SPEC.md: hand tracking T28–T30 joined Tier B, and the rigid-body model (T25) moved to Tier C. UI quality rule in AGENTS.md: load the design skills before any UI code.
-- Next step: the user connects the iPhone (USB Personal Hotspot on; phyphox "Acceleration with g" open, Remote access on). Then `git switch -c t5-phyphox`, write the T5 gates into GATE.md, run ticket-executor, then ticket-checker.
-- After T5: T2, T3, T4 (all seven .env names have values as of 17:04; the keys are not yet tried), then T8.
-- Gates: met T0.G1–G5, T1.G1–G5, T6.G1–G2, T7.G1–G2, each when its ticket landed; nothing unmet in the ledger.
-- Open decisions for the user: (1) the Gesture first values in the SPEC decisions log (1 m Advance, Recall lands on the pad, 0.5 s Halt hold) — confirm before T29; (2) the Tier B first cut if behind — decide at 01:00; (3) T0.G1 runs `gitleaks dir .`, which also scans the gitignored .env, so it fails now that real keys are in .env — change its CHECK (for example, scan only tracked files) or accept it, before the final gate run.
-- Gotchas: remove the stale worktree first, from the main checkout: `git worktree remove .claude/worktrees/agent-a244c697308a7197d` (add `--force` if its build folder blocks it). Never share CARGO_TARGET_DIR between checkouts. T0.G2 fails inside worktrees (.git is a file there). The ECC GateGuard asks for facts on the first Bash call and the first edit of each file. T7.G2's 45 Hz attitude floor sits close to the measured 49 Hz; a busy laptop can fail it.
+### Handoff — 2026-11-08 08:02 EST — from Codex to the next agent
+- Ticket / branch: T14 on `t14-server-finish` — verified and ready to land; next is `t15-web-finish`.
+- Landed this session: T9b scanned landing surfaces, T31 test-room Places, T13 mission controller. T14 adds the actual app runtime, browser stream and immediate SIM reset; all three scoped gates reverified exit 0. Existing flight/Abort integration also passes.
+- Next step: recover T15 owned source from its worktree; update reset acknowledgment, saved-scan wording, label sizes and verify headed rendering performance before landing.
+- Gates: 45 recorded, 44 met; T5.G2 remains unchecked, latest phone recheck still times out. Historical successful phone evidence is not current.
+- User confirms gestures (Push 1 m, Pull returns/lands, palm 0.5 s Abort), test-room Places, features until 11:30 EST freeze, and R immediately resets the SIM to the pad. Actual demo location is unknown.
+- Phone: user will set up USB Personal Hotspot and phyphox Remote Access shortly. Continue independent work meanwhile.
+- Existing worktrees retain Claude's work. Recover owned source only: some branches copied stale dependencies. Do not merge entire histories blindly.
+- T15 A/B reviews captured screenshots and browser reports; their final writeups were interrupted by usage limits. A found saved scan called measured now; B found tiny provenance labels and headed fps below 55 while builds were active. Root must verify fixes and rerun performance without compilation.
+- T15 evidence: worktree src/web/test-results/design-a and temporary t15-assessment-b-20261108 directory. Neither is committed. No page JS errors; controls 44 px; keyboard and reduced-motion checks passed.
+- T19 voice WIP needs partial Aboard alias and cancellation on Abort. T17 old detector fails handling cases; real recordings needed. T18 has gates but no implementation. Other Tier B tickets remain open.
+- No hardware drone flight. No new skill/plugin installations. Required dataviz skill for T22 has not been found in installed directories; resolve before gauge code.
+- Gate checker has no ticket selector: exact sections run in temporary ledgers with checkout --cwd, authentic evidence copied back with home paths sanitized; keep T5 honestly pending.
+- Sandbox escalation is needed for local git metadata, UDP/browser checks and gate approval records. No active review rejection.
