@@ -116,6 +116,11 @@ exec gitleaks git --pre-commit --staged --redact --no-banner
 - Worktrees under `.claude/worktrees/` sit inside the main checkout, so `dotenvy::dotenv()` there finds the main checkout's `.env` by searching parent folders. Probes in a worktree therefore see the real keys; that is convenient for T2–T5 but means a worktree is not isolated from secrets.
 - `gitleaks dir .` scans gitignored files too, so it reports the real keys in `.env` once they exist. That is expected; a finding in any other file is a real leak. The commit hook scans only staged changes, and `.env` is never staged.
 
+### Phone link (T5, 2026-11-07)
+- macOS 15 Local Network privacy blocks any non-Apple program from reaching the iPhone (172.20.10.1 over the USB hotspot) unless the app that launched it has Local Network access: System Settings → Privacy & Security → Local Network. The failure is `No route to host` (errno 65) while `curl` still works, because Apple's own binaries are exempt. After turning the switch on, quit and reopen that app (VS Code here; Terminal if the demo engine runs from there).
+- phyphox shows the phone's Wi-Fi address, but it also serves on the USB hotspot address, which is fixed and faster (SPEC decisions log).
+- phyphox `/get` thresholds are sent with a literal `|` (`accX=<t>|acc_time`), the form verified on the live phone. A percent-encoded `%7C` returned everything since the start in one test while the experiment was recording, but worked in a later test while it was stopped; unverified, so the code avoids it.
+
 ### Sharing work between agents
 - `AGENTS.md` holds the rules for every agent; `CLAUDE.md` imports it with `@AGENTS.md`, so the rules exist once.
 - Project skills are plain Markdown and Node scripts. Codex can read `.claude/skills/<name>/SKILL.md` and run the scripts, so nothing is duplicated into a Codex-only folder.

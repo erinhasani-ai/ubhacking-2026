@@ -141,6 +141,12 @@ impl OccupancyGrid {
         self.voxel
     }
 
+    /// True if the voxel at grid index [i, j, k] is occupied. Panics if the index is outside `dims()`.
+    pub fn is_occupied(&self, idx: [usize; 3]) -> bool {
+        assert!((0..3).all(|k| idx[k] < self.dims[k]), "voxel index {idx:?} outside {:?}", self.dims);
+        self.cells[idx[0] + self.dims[0] * (idx[1] + self.dims[1] * idx[2])]
+    }
+
     pub fn total_cells(&self) -> usize {
         self.cells.len()
     }
@@ -183,6 +189,23 @@ mod tests {
         assert_eq!(grid.total_cells(), 315);
         assert_eq!(grid.occupied_count(), 210);
         assert_eq!(grid.free_count(), 105);
+    }
+
+    #[test]
+    fn occupancy_query_matches_the_box_walls() {
+        let grid = OccupancyGrid::from_mesh(&box_mesh(), 0.25).unwrap();
+        let [nx, ny, nz] = grid.dims();
+        let mut occupied = 0;
+        for k in 0..nz {
+            for j in 0..ny {
+                for i in 0..nx {
+                    let on_wall = i == 0 || j == 0 || k == 0 || i == nx - 1 || j == ny - 1 || k == nz - 1;
+                    assert_eq!(grid.is_occupied([i, j, k]), on_wall, "voxel {:?}", [i, j, k]);
+                    occupied += on_wall as usize;
+                }
+            }
+        }
+        assert_eq!(occupied, grid.occupied_count());
     }
 
     #[test]
