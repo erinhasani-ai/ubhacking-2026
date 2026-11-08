@@ -1,7 +1,7 @@
 // T32/T33 check: campus command grammar and the simulated fire response, headless. Run: node tests/campus_sim.mjs
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { apply, buildWorld, createSim, findBuilding, parse, status, step, TEAMS, TIME_SCALE } from '../src/web/src/campus/sim.js';
+import { addressed, apply, buildWorld, createSim, findBuilding, parse, status, step, TEAMS, TIME_SCALE } from '../src/web/src/campus/sim.js';
 
 const data = JSON.parse(readFileSync(new URL('../src/web/public/campus/ub-north.json', import.meta.url), 'utf8'));
 const world = buildWorld(data);
@@ -62,3 +62,32 @@ assert.ok(q.quake && q.surveyed, 'quake detected and survey completed');
 assert.ok(sim.quake.affected.length >= 3 && sim.quake.inspected.size === sim.quake.affected.length);
 console.log(`  quake detected at ${(q.quake.t / TIME_SCALE).toFixed(0)} s real: ${q.quake.text}`);
 console.log(`  survey done at ${(q.surveyed.t / TIME_SCALE).toFixed(0)} s real: ${q.surveyed.text}`);
+
+// Random events, and orders that send a team to an event instead of starting a new one.
+{
+  const s2 = createSim(world);
+  const rf = parse(s2, 'Simulate a fire somewhere random');
+  assert.equal(rf.cmd.kind, 'ignite');
+  assert.ok(rf.cmd.building?.name, 'a random fire starts at a named building');
+  const rq = parse(s2, 'Simulate a random earthquake');
+  assert.equal(rq.cmd.kind, 'quake');
+  assert.ok(rq.cmd.building?.name, 'a random quake is centred on a named building');
+  apply(s2, rq.cmd);
+  const go = parse(s2, 'Delta, go to the earthquake');
+  assert.equal(go.cmd?.kind, 'team', 'an order about the quake does not start a new one');
+  assert.deepEqual(go.cmd.teams, ['delta']);
+  assert.deepEqual(go.cmd.target.at, s2.quake.at);
+  apply(s2, rf.cmd);
+  const out = parse(s2, 'Echo, put out the fire');
+  assert.equal(out.cmd?.verb, 'suppress');
+  console.log('random events and manual orders: ok');
+}
+
+// Hands-free speech acts only when it addresses Aether.
+assert.equal(addressed('this simulation is so cool'), null);
+assert.equal(addressed('reset the simulation'), null);
+assert.equal(addressed('Aether, simulate a random earthquake'), 'simulate a random earthquake');
+assert.equal(addressed('Ether all teams patrol the campus'), 'all teams patrol the campus');
+assert.equal(addressed('hey Aether. Status report'), 'Status report');
+assert.equal(addressed('Okay Aether'), '');
+console.log('wake word: ok');

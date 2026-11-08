@@ -462,25 +462,39 @@ const VERBS = [
   ['goto', /\b(go|fly|move|head|send|proceed|dispatch|launch|deploy)\b/],
 ];
 
+/** Hands-free speech counts only when it addresses Aether. Returns the words after the wake word, or null. Scribe often writes "Ether". */
+export function addressed(text) {
+  const m = /\b(?:hey |ok |okay )?(?:aether|ether)\b[\s,.:!?-]*/i.exec(text);
+  return m ? text.slice(m.index + m[0].length).trim() : null;
+}
+
 /** Parses one transcript. Returns {cmd} or {error, unheard}; `unheard` means nothing command-like was said. */
 export function parse(sim, text) {
   const t = norm(text);
   if (/^ reset\b| reset (the )?(sim|simulation|campus)\b/.test(t)) return { cmd: { kind: 'reset' } };
   if (/\b(abort|all stop|stop all|emergency stop|stop everything)\b/.test(t)) return { cmd: { kind: 'abort' } };
-  if (/\b(earthquake|quake|tremor|seismic)\b/.test(t) && !/\bstatus\b/.test(t)) {
-    const b = findBuilding(sim.world, text);
+  const teams = ALL.test(t) ? TEAMS.map((x) => x.id) : TEAMS.filter((x) => TEAM_WORDS[x.id].test(t)).map((x) => x.id);
+  // "random", "somewhere": the event starts at a named building chosen at random, so the operator has to find it.
+  const anywhere = /\b(random|randomly|somewhere|anywhere|surprise)\b/.test(t);
+  const randomBuilding = () => sim.world.places[Math.floor(Math.random() * sim.world.places.length)].b;
+  // A sentence that names a team is an order about the quake ("Delta, go to the earthquake"), not a new one.
+  if (/\b(earthquake|quake|tremor|seismic)\b/.test(t) && !/\bstatus\b/.test(t) && !teams.length) {
+    const b = anywhere ? randomBuilding() : findBuilding(sim.world, text);
     return { cmd: { kind: 'quake', building: b } };
   }
-  if (/\b(simulate|start|ignite|light|set)\b.*\bfire\b|\b(test|practice) fire\b|\bfire drill\b/.test(t)) {
-    const b = findBuilding(sim.world, text) ?? sim.world.places.find((p) => p.b.name === 'Capen Hall')?.b ?? sim.world.places[0].b;
+  if (/\b(simulate|start|ignite|light|set)\b.*\bfire\b|\b(test|practice) fire\b|\bfire drill\b|\b(random|surprise) fire\b/.test(t) && !teams.length) {
+    const b = anywhere ? randomBuilding() : findBuilding(sim.world, text) ?? sim.world.places.find((p) => p.b.name === 'Capen Hall')?.b ?? sim.world.places[0].b;
     return { cmd: { kind: 'ignite', building: b } };
   }
-  const teams = ALL.test(t) ? TEAMS.map((x) => x.id) : TEAMS.filter((x) => TEAM_WORDS[x.id].test(t)).map((x) => x.id);
   const verb = VERBS.find(([, re]) => re.test(t))?.[0];
   if (/\b(status|report|sitrep|situation|update)\b/.test(t) && (!verb || !teams.length)) return { cmd: { kind: 'status' } };
   const fire = sim.fire && sim.fire.status !== 'out' ? sim.fire : null;
   const building = findBuilding(sim.world, text);
-  const target = /\bfire\b/.test(t) && fire ? { name: `the fire at ${fire.name}`, at: fire.at, fire: true } : building ? { name: building.name, at: building.c, building } : null;
+  const shaken = sim.quake && sim.quake.status !== 'clear' ? sim.quake : null;
+  const quakeTarget = shaken && /\b(earthquake|quake|epicent(er|re)|tremor|damage|shaking)\b/.test(t)
+    ? { name: shaken.name ? `the earthquake near ${shaken.name}` : 'the earthquake epicentre', at: shaken.at }
+    : null;
+  const target = /\bfire\b/.test(t) && fire ? { name: `the fire at ${fire.name}`, at: fire.at, fire: true } : building ? { name: building.name, at: building.c, building } : quakeTarget;
   const v = verb ?? (target && teams.length ? 'goto' : null);
   if (!v) return { error: 'No command heard. Try "Alpha, patrol the campus".', unheard: !teams.length };
   if (!teams.length) return { error: 'Which team? Say Alpha, Bravo, Charlie, Delta or Echo.' };

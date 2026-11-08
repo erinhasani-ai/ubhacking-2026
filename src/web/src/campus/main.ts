@@ -156,10 +156,18 @@ async function main() {
     } else ui.phone = 'off';
   }
 
-  /** Runs one command. Hands-free chatter with no team and no command word is shown but not answered. */
+  /** Runs one command. Hands-free speech must address Aether; anything else is shown greyed out, never acted on. */
   function run(text: string, heard = false) {
     text = text.trim();
     if (!text) return;
+    if (heard) {
+      const said = S.addressed(text);
+      if (!said) {
+        log('heard', text);
+        return;
+      }
+      text = said;
+    }
     const r = S.parse(sim, text);
     if (heard && r.unheard) {
       log('heard', text);
@@ -271,7 +279,7 @@ async function main() {
   }, 100);
 
   mount(Campus, { target: document.getElementById('app')!, props: { actions } });
-  log('aether', 'Campus ready. The mic is on: say "All teams, patrol the campus". Tap the mic button to turn it off.');
+  log('aether', 'Campus ready. The mic is on. Start each command with "Aether", like "Aether, all teams patrol the campus". Tap the mic button to turn it off.');
   toggleListening(); // hands-free from the start; the mic button turns it off
 
   // Test-only, read-only hook for screenshots and checks.

@@ -17,7 +17,7 @@
   let { actions }: { actions: Actions } = $props();
 
   let text = $state('');
-  const EXAMPLES = ['All teams, patrol the campus', 'Simulate a fire at Capen Hall', 'Bravo, go to Lockwood Library', 'Simulate an earthquake', 'Status report', 'All teams, return to base'];
+  const EXAMPLES = ['All teams, patrol the campus', 'Simulate a fire somewhere random', 'Simulate a random earthquake', 'Simulate a fire at Capen Hall', 'Bravo, go to Lockwood Library', 'Status report', 'All teams, return to base'];
   const STATUS = { burning: 'Burning', contained: 'Contained', out: 'Out' } as const;
   const micWords = $derived({ off: 'Mic off · tap to enable', listening: 'Listening · tap to disable', hearing: 'Hearing you…', transcribing: 'Transcribing…' }[ui.mic]);
 
@@ -148,7 +148,7 @@
 <footer class="dock">
   <ol class="log" aria-live="polite">
     {#each ui.log.slice(-4) as l (l.seq)}
-      <li data-who={l.who}><span class="who">{{ you: 'You', error: 'Not run', heard: 'Heard, no command', aether: 'Aether' }[l.who]}</span>{l.text}</li>
+      <li data-who={l.who}><span class="who">{{ you: 'You', error: 'Not run', heard: 'Not for Aether', aether: 'Aether' }[l.who]}</span>{l.text}</li>
     {/each}
   </ol>
   <div class="panel bar">
@@ -169,7 +169,7 @@
   </div>
   <p class="meta">
     <span>Voice: {ui.voice}</span>
-    <label><input type="checkbox" bind:checked={ui.autoResponse} /> Automatic fire response</label>
+    <label><input type="checkbox" bind:checked={ui.autoResponse} /> Automatic response (off: you direct the teams)</label>
     <label><input type="checkbox" bind:checked={ui.muted} /> Mute</label>
     <label>
       <input type="checkbox" checked={ui.phone !== 'off'} onchange={actions.togglePhone} /> Phone accelerometer
@@ -423,7 +423,7 @@
     left: var(--gutter);
     top: 13rem;
     width: min(36rem, calc(100vw - 22rem - 3 * var(--gutter)));
-    max-height: calc(100vh - 10.5rem - 22rem);
+    max-height: calc(100vh - 13rem - 25rem); /* ends above the conversation log and the dock */
     overflow: hidden;
     padding: 0.55rem 0.8rem;
   }

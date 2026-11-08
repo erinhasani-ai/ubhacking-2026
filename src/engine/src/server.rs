@@ -150,13 +150,35 @@ async fn stt(headers: axum::http::HeaderMap, body: axum::body::Bytes) -> Respons
 // Phone accelerometer for the campus quake trigger (T33): the engine polls phyphox (PHYPHOX_URL) so the browser
 // never talks to the phone. Each GET returns the [t, |a|] samples since the previous call; a failure drops the
 // session so the next call reconnects.
-static PHONE: std::sync::OnceLock<tokio::sync::Mutex<Option<(crate::phyphox::Client, crate::phyphox::Reader)>>> = std::sync::OnceLock::new();
+static PHONE: std::sync::OnceLock<tokio::sync::Mutex<Option<(String, crate::phyphox::Client, crate::phyphox::Reader)>>> = std::sync::OnceLock::new();
 
-async fn accel() -> Response {
+/// `?ip=172.20.10.1[:port]` picks the phone (the sensor test page); without it PHYPHOX_URL is used (the campus page).
+/// Only a private-network IPv4 address is accepted: this route makes the engine call out, so it must not reach the internet.
+fn phone_url(ip: Option<&String>) -> anyhow::Result<String> {
+    let Some(ip) = ip else { return std::env::var("PHYPHOX_URL").map_err(|_| anyhow::anyhow!("PHYPHOX_URL is not set")) };
+    let ip = ip.trim().trim_start_matches("http://").trim_end_matches('/');
+    let (host, port) = ip.split_once(':').map_or((ip, None), |(h, p)| (h, Some(p)));
+    let addr: std::net::Ipv4Addr = host.parse().map_err(|_| anyhow::anyhow!("{host:?} is not an IPv4 address"))?;
+    if !(addr.is_private() || addr.is_link_local() || addr.is_loopback()) {
+        anyhow::bail!("{addr} is not on a private network");
+    }
+    match port {
+        Some(p) => Ok(format!("http://{addr}:{}", p.parse::<u16>().map_err(|_| anyhow::anyhow!("{p:?} is not a port"))?)),
+        None => Ok(format!("http://{addr}")),
+    }
+}
+
+async fn accel(axum::extract::Query(q): axum::extract::Query<std::collections::HashMap<String, String>>) -> Response {
+    let url = match phone_url(q.get("ip")) {
+        Ok(u) => u,
+        Err(e) => return (StatusCode::BAD_REQUEST, format!("phone address: {e}")).into_response(),
+    };
     let mut phone = PHONE.get_or_init(|| tokio::sync::Mutex::new(None)).lock().await;
+    if phone.as_ref().is_some_and(|(u, _, _)| *u != url) {
+        *phone = None; // a different phone: start a fresh session
+    }
     if phone.is_none() {
         let opened = async {
-            let url = std::env::var("PHYPHOX_URL").map_err(|_| anyhow::anyhow!("PHYPHOX_URL is not set"))?;
             let c = crate::phyphox::Client::new(&url)?;
             c.clear().await?;
             c.start().await?;
@@ -164,13 +186,13 @@ async fn accel() -> Response {
         }
         .await;
         match opened {
-            Ok(c) => *phone = Some((c, crate::phyphox::Reader::default())),
+            Ok(c) => *phone = Some((url, c, crate::phyphox::Reader::default())),
             Err(e) => return (StatusCode::BAD_GATEWAY, format!("phone not reachable: {e}")).into_response(),
         }
     }
-    let (c, r) = phone.as_mut().expect("opened above");
+    let (_, c, r) = phone.as_mut().expect("opened above");
     match c.poll(r).await {
-        Ok(samples) => axum::Json(json!({ "samples": samples.iter().map(|s| [s.t, s.magnitude]).collect::<Vec<_>>() })).into_response(),
+        Ok(samples) => axum::Json(json!({ "samples": samples.iter().map(|s| [s.t, s.magnitude, s.x, s.y, s.z]).collect::<Vec<_>>() })).into_response(),
         Err(e) => {
             *phone = None;
             (StatusCode::BAD_GATEWAY, format!("phone read failed: {e}")).into_response()

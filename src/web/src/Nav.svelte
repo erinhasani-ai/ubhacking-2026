@@ -1,9 +1,10 @@
 <script lang="ts">
   // The view switcher shared by both pages: one tap between the Davis floor and the campus.
-  let { current }: { current: 'floor' | 'campus' } = $props();
+  let { current }: { current: 'floor' | 'campus' | 'phone' } = $props();
   const views = [
     { id: 'floor', label: 'Davis floor', href: './' },
     { id: 'campus', label: 'Campus', href: 'campus.html' },
+    { id: 'phone', label: 'Sensor test', href: 'phone.html' },
   ] as const;
 </script>
 
