@@ -105,3 +105,26 @@ A ticket is not done until every one of its gates shows passing evidence here.
   CHECK: PATH="$HOME/.cargo/bin:$PATH" .venv/bin/python tests/mavlink_flight.py
   EXPECT: /mavlink_ok refused=1 armed=1 reached=1 landed=1 att_hz=(4[5-9]|[5-9]\d) pos_hz=(2[5-9]|[3-9]\d)/
   EVIDENCE: automatic-evidence=v1; definition-sha256=bc55814e9f0cf0638925e40c5b6f5cf6fb4ef57b181b54769f8df0c39032e083; exit=0; EXPECT=matched; output-sha256=3e405f957deb85cdbc585e381743e5f4e45b1b6481ce2a29a84c18f99d2d43ee; output-bytes=68; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
+
+## T8a — Dependencies and module stubs (T8 and T16 dependencies, landed first)
+
+- [x] T8a.G1: The engine has axum (ws), pathfinding, cpal and rodio (playback), and every later module is declared, so no later ticket touches Cargo.toml or a lib.rs
+  CHECK: node -e "const fs=require('fs');const r=f=>fs.readFileSync(f,'utf8');const c=r('src/engine/Cargo.toml');const miss=['axum','pathfinding','cpal','rodio'].filter(d=>!new RegExp('^'+d+' =','m').test(c));if(!/^axum = .*\"ws\"/m.test(c))miss.push('axum ws');if(!/^rodio = .*\"playback\"/m.test(c))miss.push('rodio playback');const m={'src/core/src/lib.rs':['frame','planner','orca','policy','quake','pointer','places','hand','ray_history'],'src/engine/src/lib.rs':['gcs','mission','server','voice_loop','telemetry_store','hand_input','replay','report']};for(const[f,ms]of Object.entries(m))for(const x of ms)if(!r(f).includes('pub mod '+x+';'))miss.push(f+':'+x);if(miss.length){console.log('missing: '+miss.join(', '));process.exit(1)}console.log('t8a'+'_ready')"
+  EXPECT: t8a_ready
+  EVIDENCE: automatic-evidence=v1; definition-sha256=81e634aec76410395b3adfff2331e676c0bd7d4a71048a344a8c434f2d7d3891; exit=0; EXPECT=matched; output-sha256=f5ef7958aba36c824e05f1da41fe146c9f27c82e91d8ab724c7f415a5308d375; output-bytes=10; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
+
+- [x] T8a.G2: The workspace and the WebAssembly crate build with the new dependencies
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo build --workspace && PATH="$HOME/.cargo/bin:$PATH" cargo build -p aether-wasm --target wasm32-unknown-unknown && echo "build"_ok
+  EXPECT: build_ok
+  EVIDENCE: automatic-evidence=v1; definition-sha256=265ddc570007970cd30af7a31f591985c85c3c469b7cf46e67a4a783d735b3c5; exit=0; EXPECT=matched; output-sha256=f79d7c9d2655adda1b2e7aeb2ff4e62ce74e50bdd9b02ee0e22d5682278b05dc; output-bytes=154; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
+## T5 — phyphox spike
+
+- [x] T5.G1: The phyphox reply parser, on fixture replies, keeps only new samples and notices a changed session
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-engine phyphox
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=fc2bc678fff2454fe573878d91142f2df0b50bf2b98a11c551db0d8e4198a92b; exit=0; EXPECT=matched; output-sha256=f0bd4ca360c10cd017e429159665399adcb669de56a25a474e3d87bf7c470c5e; output-bytes=1244; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t5-phyphox; path=441ef2ff855b/30 entries
+
+- [x] T5.G2: The probe streams at least 100 samples from the live phone over 5 s with one session, and reports sample rate and median round-trip time
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_phyphox
+  EXPECT: /phyphox_ok samples=([1-9]\d{2,}) rate_hz=\d+ rtt_ms=\d+/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=7f246074f1cdce59dc270d0678565143569403c156bd4638e93dfdba6a77cfa2; exit=0; EXPECT=matched; output-sha256=e6f9751a099086f26f2634b3a89f9fdcc501e34d8d1c33a2e1b9f89e40eda451; output-bytes=44; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t5-phyphox; path=441ef2ff855b/30 entries
