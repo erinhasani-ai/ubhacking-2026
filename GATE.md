@@ -114,7 +114,7 @@ A ticket is not done until every one of its gates shows passing evidence here.
 
 ## T20 — Put-That-There (ray history)
 
-- [ ] T20.G1: With a scripted ray history and word timings on the engine clock, "there" picks the ray at the word's start, the latest "there" wins, punctuation and case don't matter, no ray near the word gives none, and the history keeps only its window
+- [x] T20.G1: With a scripted ray history and word timings on the engine clock, "there" picks the ray at the word's start, the latest "there" wins, punctuation and case don't matter, no ray near the word gives none, and the history keeps only its window
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core ray_history::
   EXPECT: /test result: ok\. [1-9]\d* passed/
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=d9bc531a7845c01e81312db4c1438528507d307e569e8f4ee0def840eaab1956; exit=0; EXPECT=matched; output-sha256=b8caac3ee294cb6df8145556688dd0867d6a03900b5f07067cd88da01e106cad; output-bytes=830; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t20-rays; path=d082171f4bb6/24 entries
