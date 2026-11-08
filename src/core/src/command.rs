@@ -173,10 +173,36 @@ fn in_swarm(id: u8) -> Result<(), String> {
     }
 }
 
+/// Where a Command came from; the Stream protocol's verdict `source` (SPEC decisions log, Mission inbox).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Source {
+    Voice,
+    Gesture,
+    Click,
+    Key,
+}
+
+/// The policy check's result for one Command: approved, or rejected with a reason.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Verdict {
+    pub approved: bool,
+    pub reason: Option<String>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::{json, Value};
+
+    #[test]
+    fn source_and_verdict_use_the_stream_protocol_words() {
+        let words: Vec<Value> = [Source::Voice, Source::Gesture, Source::Click, Source::Key].iter().map(|s| json!(s)).collect();
+        assert_eq!(words, vec![json!("voice"), json!("gesture"), json!("click"), json!("key")]);
+        let rejected = Verdict { approved: false, reason: Some("the door is not a Place".into()) };
+        assert_eq!(json!(rejected), json!({"approved": false, "reason": "the door is not a Place"}));
+        assert_eq!(json!(Verdict { approved: true, reason: None }), json!({"approved": true, "reason": null}));
+    }
 
     fn round_trips(wire: Value) {
         let text = wire.to_string();
