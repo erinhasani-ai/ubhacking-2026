@@ -3,8 +3,6 @@
 //! Scan frame: Scaniverse OBJ, metres, Y up. Mission frame: N = -z, E = x, D = floor_y - y,
 //! origin on the room floor directly below the Launch pad centre.
 
-/// Launch pad centre in the scan frame (x, y of the table top, z), measured by `probe_pad`
-/// on the 2026-11-07 Scaniverse scan.
 /// Launch pad centre (x, z) in the scan frame, measured by `probe_pad --search` on the 2026-11-07 Scaniverse scan.
 pub const PAD_XZ: [f64; 2] = [-0.10, 1.40];
 /// Scanned floor height under the pad (the floor is not level, so it is measured under the pad only), same scan.
