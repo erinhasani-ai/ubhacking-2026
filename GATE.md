@@ -65,6 +65,23 @@ A ticket is not done until every one of its gates shows passing evidence here.
   EXPECT: /tiger_ok tls=1 hypertable=1 counted=10000 rows_per_s=[1-9]\d* dropped=1/
   EVIDENCE: automatic-evidence=v1; definition-sha256=e96b4cb66f415de8cd76a8d8111724c21958a7576c99f76a06078ad43de439c4; exit=0; EXPECT=matched; output-sha256=7247624cbd452f9b7746af7e48646c098cf583c298707844699349851673be1a; output-bytes=130; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
 
+## T3 — Gemini spike
+
+- [x] T3.G1: The Command parser matches known answers: every kind parses from its wire JSON and round-trips; unknown fields at any level, unknown kinds, drone counts outside 1–6, bad id lists, an empty place and a dispatch without a target are rejected
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core command::
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=d6c54a2cd6f1645d00fce8ee5adfe47a6c9bd0f2b65f9edee1b60e25437d7f97; exit=0; EXPECT=matched; output-sha256=25814d1d9924ab06635de6736b3acf178a6cb0adb7533e1e8258c3059a7cfc30; output-bytes=714; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
+
+- [x] T3.G2: On recorded Gemini replies, a function call maps to the right Command through the aether-core parser, a reply with no function call gives no Command, and an unknown argument is rejected
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-engine gemini::
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=7545ffad7aeb5eb8ef5b978f54e57df8000db2d10c9e900e412486694fca1807; exit=0; EXPECT=matched; output-sha256=934dcbefe47e0570c67085254f03d76bbc6f3e526f404995a630d664395ba474; output-bytes=1461; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
+
+- [x] T3.G3: Live Gemini turns "Aether, send two drones to the door" into the same dispatch Command on 3 calls and reports the median latency
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_gemini
+  EXPECT: /gemini_ok command=\{"kind":"dispatch","drones":\{"count":2\},"target":\{"place":"door"\}\} calls=3 median_ms=[1-9]\d*/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=d06c9d854b16712ecde624c9e8ad273f12fac59c4753ee636681b47d33d26f09; exit=0; EXPECT=matched; output-sha256=c91ca011b3fff251dbdf2c3013c077cd9ddd04033004591f99652423c8865f6f; output-bytes=201; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
+
 ## T6 — Room Twin
 
 - [x] T6.G1: The occupancy grid matches known answers on a synthetic box room (exact occupied and free counts, no holes in a two-triangle wall) and the scan header parses
