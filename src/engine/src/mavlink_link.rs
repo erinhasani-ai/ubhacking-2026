@@ -65,6 +65,8 @@ struct State {
     setpoint: Option<([f64; 3], Instant)>,
     /// When the Drone auto-disarms after touchdown.
     disarm_at: Option<Instant>,
+    /// Ignore in-flight control datagrams briefly after a local simulation reset.
+    commands_after: Instant,
 }
 
 /// One Drone as a MAVLink endpoint. Sending and receiving share the connection; the model is behind a Mutex.
@@ -140,6 +142,21 @@ impl Due {
 }
 
 impl Endpoint {
+    /// Local simulation reset only; this is deliberately not a MAVLink flight command.
+    pub fn reset_to(&self, start: [f64; 3]) {
+        let mut drone = Drone::on_floor();
+        drone.position = start;
+        drone.ground = self.ground.below(start);
+        *self.state.lock().unwrap() = State {
+            drone, mode: Mode::Manual, setpoint: None, disarm_at: None,
+            commands_after: Instant::now() + Duration::from_millis(200),
+        };
+        self.send_heartbeat();
+        self.send_attitude();
+        self.send_position();
+        self.send_sys_state();
+    }
+
     fn header(&self) -> MavHeader {
         MavHeader {
             system_id: self.system_id as u32,
@@ -277,7 +294,10 @@ impl Endpoint {
                     return;
                 }
                 let target = [d.x as f64, d.y as f64, d.z as f64];
-                self.state.lock().unwrap().setpoint = Some((target, Instant::now()));
+                let mut s = self.state.lock().unwrap();
+                if Instant::now() >= s.commands_after {
+                    s.setpoint = Some((target, Instant::now()));
+                }
             }
             MavMessage::COMMAND_LONG(d) => {
                 if d.target_system != self.system_id {
@@ -296,6 +316,7 @@ impl Endpoint {
     fn command(&self, d: &COMMAND_LONG_DATA) -> MavResult {
         let now = Instant::now();
         let mut s = self.state.lock().unwrap();
+        if now < s.commands_after { return MavResult::MAV_RESULT_TEMPORARILY_REJECTED; }
         match d.command {
             MavCmd::MAV_CMD_DO_SET_MODE => {
                 // pymavlink sends the PX4 main mode in param2 and the sub mode in param3 (set_mode_px4).
@@ -341,6 +362,18 @@ pub fn run_at(system_id: u8, start: [f64; 3], ground: f64, ground_station: &str)
 
 /// Like `run_at`, with the ground sampled from the Room Twin on each physics step.
 pub fn run_on_ground(system_id: u8, start: [f64; 3], ground: Ground, ground_station: &str) -> Result<()> {
+    run_endpoint(new_endpoint(system_id, start, ground, ground_station)?)
+}
+
+/// Starts a simulated endpoint and returns its local reset handle. Threads end with the demo process.
+pub fn spawn_on_ground(system_id: u8, start: [f64; 3], ground: Ground, ground_station: &str) -> Result<Arc<Endpoint>> {
+    let endpoint = new_endpoint(system_id, start, ground, ground_station)?;
+    let running = Arc::clone(&endpoint);
+    thread::spawn(move || { let _ = run_endpoint(running); });
+    Ok(endpoint)
+}
+
+fn new_endpoint(system_id: u8, start: [f64; 3], ground: Ground, ground_station: &str) -> Result<Arc<Endpoint>> {
     let mut conn = connect::<MavMessage>(&format!("udpout:{ground_station}"))
         .with_context(|| format!("opening MAVLink UDP to {ground_station}"))?;
     conn.set_protocol_version(MavlinkVersion::V2);
@@ -357,8 +390,13 @@ pub fn run_on_ground(system_id: u8, start: [f64; 3], ground: Ground, ground_stat
             mode: Mode::Manual,
             setpoint: None,
             disarm_at: None,
+            commands_after: Instant::now(),
         }),
     });
+    Ok(endpoint)
+}
+
+fn run_endpoint(endpoint: Arc<Endpoint>) -> Result<()> {
     let receiver = Arc::clone(&endpoint);
     thread::spawn(move || receiver.receive_loop());
 

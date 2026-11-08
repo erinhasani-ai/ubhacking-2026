@@ -26,6 +26,7 @@ use crate::gcs::{DroneLink, Gcs};
 pub type Inbox = mpsc::Sender<(Source, Command, oneshot::Sender<Verdict>)>;
 /// Every answered Command with its Verdict, for the browser (T14) and the Mission timeline (T22).
 pub type Verdicts = broadcast::Sender<(Source, Command, Verdict)>;
+pub type Resets = mpsc::Sender<oneshot::Sender<()>>;
 
 const TICK: Duration = Duration::from_millis(50); // 20 Hz
 /// Cruise speed cap, m/s (Tier A Drones fly up to 1.5 horizontally and 1.0 vertically).
@@ -64,6 +65,7 @@ const ABORT_FIRST: &str = "Abort came first.";
 pub struct Mission {
     pub inbox: Inbox,
     pub verdicts: Verdicts,
+    pub resets: Resets,
     view_heading: Arc<Mutex<[f64; 2]>>,
 }
 
@@ -85,7 +87,18 @@ pub fn spawn(
     field: Arc<DistanceField>,
     place: impl Fn(&str) -> Result<[f64; 3], String> + Send + 'static,
 ) -> Mission {
+    spawn_with_reset(gcs, field, place, || {})
+}
+
+/// Adds the local simulator reset callback; never used as a physical flight command.
+pub fn spawn_with_reset(
+    gcs: Arc<Gcs>,
+    field: Arc<DistanceField>,
+    place: impl Fn(&str) -> Result<[f64; 3], String> + Send + 'static,
+    reset_simulation: impl Fn() + Send + 'static,
+) -> Mission {
     let (inbox, rx) = mpsc::channel(64);
+    let (resets, reset_rx) = mpsc::channel(8);
     let verdicts = broadcast::channel(256).0;
     let view_heading = Arc::new(Mutex::new([1.0, 0.0]));
     let (planned, planned_rx) = mpsc::unbounded_channel();
@@ -101,8 +114,8 @@ pub fn spawn(
         waiting: VecDeque::new(),
         planned,
     };
-    tokio::spawn(control.run(rx, planned_rx));
-    Mission { inbox, verdicts, view_heading }
+    tokio::spawn(control.run(rx, planned_rx, reset_rx, reset_simulation));
+    Mission { inbox, verdicts, resets, view_heading }
 }
 
 /// Scan ↔ Mission conversions, passed in so the pure helpers also run on small test rooms.
@@ -215,7 +228,7 @@ enum Task {
     /// Abort: braking to its stopping point, then it lands.
     Stop { since: Instant },
     /// Land sent; until it is disarmed on the ground.
-    Land { since: Instant },
+    Land { since: Instant, handshake: JoinHandle<()> },
 }
 
 /// What the latest Telemetry says about one Drone, Mission frame.
@@ -269,12 +282,21 @@ impl Control {
         mut self,
         mut rx: mpsc::Receiver<(Source, Command, oneshot::Sender<Verdict>)>,
         mut planned_rx: mpsc::UnboundedReceiver<Planned>,
+        mut resets: mpsc::Receiver<oneshot::Sender<()>>,
+        reset_simulation: impl Fn() + Send,
     ) {
         let mut tick = tokio::time::interval(TICK);
         tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
         loop {
             tokio::select! {
                 biased;
+                Some(reply) = resets.recv() => {
+                    self.reset(&mut rx).await;
+                    reset_simulation();
+                    // Let old loopback packets drain and fresh reset telemetry arrive before new Commands.
+                    tokio::time::sleep(Duration::from_millis(250)).await;
+                    let _ = reply.send(());
+                }
                 message = rx.recv() => {
                     let Some(first) = message else { break };
                     let mut batch = vec![first];
@@ -286,6 +308,27 @@ impl Control {
                 Some(planned) = planned_rx.recv() => self.planned(planned),
                 _ = tick.tick() => self.tick(),
             }
+        }
+    }
+
+    async fn reset(&mut self, rx: &mut mpsc::Receiver<(Source, Command, oneshot::Sender<Verdict>)>) {
+        self.epoch += 1;
+        self.planning = false;
+        for task in self.tasks.values_mut() {
+            match task {
+                Task::TakeOff { handshake, .. } | Task::Land { handshake, .. } => {
+                    handshake.abort();
+                    let _ = handshake.await;
+                }
+                _ => {},
+            }
+            *task = Task::Ground;
+        }
+        self.gcs.reset_control();
+        while let Ok(command) = rx.try_recv() { self.waiting.push_back(command); }
+        let dropped: Vec<_> = self.waiting.drain(..).collect();
+        for (source, command, reply) in dropped {
+            self.answer(source, command, reply, Verdict { approved: false, reason: Some("Mission reset.".into()) });
         }
     }
 
@@ -421,7 +464,7 @@ impl Control {
         if p.epoch != self.epoch {
             // abort() already reset every Drone this plan selected and cleared `planning`, which may now belong to a
             // newer plan, so neither is touched here.
-            self.answer(p.source, p.command, p.reply, Verdict { approved: false, reason: Some(ABORT_FIRST.into()) });
+            self.answer(p.source, p.command, p.reply, Verdict { approved: false, reason: Some("A newer Abort or reset cancelled this plan.".into()) });
             return;
         }
         self.planning = false;
@@ -510,8 +553,7 @@ impl Control {
                             *task = Task::Hover(goal);
                         } else {
                             self.gcs.set_target(id, Some(goal.map(|x| x as f32)));
-                            land(&self.gcs, id);
-                            *task = Task::Land { since: now };
+                            *task = Task::Land { since: now, handshake: land(&self.gcs, id) };
                         }
                         continue;
                     }
@@ -523,16 +565,16 @@ impl Control {
                 }
                 Task::Stop { since } => {
                     if since.elapsed() >= HOLD_FOR {
-                        land(&self.gcs, id);
-                        *task = Task::Land { since: now };
+                        *task = Task::Land { since: now, handshake: land(&self.gcs, id) };
                     }
                 }
-                Task::Land { since } => {
+                Task::Land { since, handshake } => {
                     if !s.armed && s.on_ground {
                         self.gcs.set_target(id, None);
                         *task = Task::Ground;
                     } else if !s.landing && since.elapsed() > LAND_RETRY {
-                        land(&self.gcs, id);
+                        handshake.abort();
+                        *handshake = land(&self.gcs, id);
                         *since = now;
                     }
                 }
@@ -617,13 +659,13 @@ async fn take_off(gcs: Arc<Gcs>, id: u8) {
 }
 
 /// Sends land without holding up the control loop; PX4 disarms on its own after touchdown.
-fn land(gcs: &Arc<Gcs>, id: u8) {
+fn land(gcs: &Arc<Gcs>, id: u8) -> JoinHandle<()> {
     let gcs = Arc::clone(gcs);
     tokio::spawn(async move {
         if let Err(e) = gcs.land(id).await {
             eprintln!("mission: Drone {id} did not take the land command: {e}");
         }
-    });
+    })
 }
 
 /// Velocity back to a hold point, slowing as it gets close.
@@ -770,7 +812,7 @@ mod tests {
         control.planned(Planned {
             epoch: 0, source: Source::Key, command: dispatch, reply: old_tx, result: Ok(vec![]),
         });
-        assert_eq!(old_rx.await.unwrap().reason.as_deref(), Some(ABORT_FIRST));
+        assert_eq!(old_rx.await.unwrap().reason.as_deref(), Some("A newer Abort or reset cancelled this plan."));
         assert!(control.planning, "the old result released the newer planning slot");
         assert!(control.tasks.is_empty(), "the old result started a route");
     }

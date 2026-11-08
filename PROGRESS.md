@@ -2,6 +2,8 @@
 
 Format: `YYYY-MM-DD | Tn | what shipped | gate result`
 
+- 2026-11-08 | T14 | Local `aether` runtime shares the real scan with six simulated MAVLink endpoints; WebSocket hello/cloud/30 Hz state/real Verdicts, static UI serving, duplicate-command rejection, and immediate SIM reset with queued/planned work and retries cancelled | Ticket-scoped gate-check --reverify exit 0, T14.G1–G3 met: protocol integration, actual-engine dispatch/rejection/climb/reset-within-5-s/redispatch, 36 engine unit tests. Existing real-scan mission/Abort/landing integration passed. Phone recheck still times out.
+
 - 2026-11-08 | T13 | Recovered policy and mission controller; asynchronous route planning, shortest assignment, ORCA-shaped setpoints and priority Abort; fixed arrival-to-follow-up-command race and protected newer plans from pre-Abort results | Ticket-scoped gate-check --reverify exit 0, T13.G1–G3 met: 14 policy tests, 6 mission tests, real-scan two-Drone dispatch/obstacle rejection/separation/Abort/landing integration. No hardware flight.
 
 - 2026-11-08 | T31 | Recovered Claude's compiled Named Places and scan-map probe; door, table, middle and west corner are confirmed for the test scan, with unknown-name lookup errors listing known Places | Ticket-scoped gate-check exit 0, T31.G1–G3 met; 5 unit tests and real-scan clearance probe passed; user confirmed the displayed test-room map. Demo room remains unknown.
