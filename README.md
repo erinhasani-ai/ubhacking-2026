@@ -35,7 +35,7 @@ An all-in-one campus safety console: teams of drones you command by voice, on a 
 
 ## Run it
 
-**Release (macOS):** download the zip from [Releases](../../releases), unzip it, then right-click `Aether.command` and choose Open. The browser opens the campus view.
+**Release (macOS):** download the zip from [Releases](../../releases), unzip it and double-click `Aether.command`. If macOS says it cannot be verified, open System Settings → Privacy & Security, click **Open Anyway**, and double-click again. The browser opens the campus view.
 - For voice, put a `.env` next to `aether` containing `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID`.
 - For the phone trigger, add `PHYPHOX_URL` to the same `.env`.
 - Without keys, Aether speaks with the browser voice and you type the commands.
