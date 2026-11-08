@@ -2,6 +2,16 @@ pub mod command;
 pub mod room_twin;
 pub mod vehicle;
 
+pub mod frame;
+pub mod planner;
+pub mod orca;
+pub mod policy;
+pub mod quake;
+pub mod pointer;
+pub mod places;
+pub mod hand;
+pub mod ray_history;
+
 /// Crate version from Cargo.toml, reported by the WebAssembly build.
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
