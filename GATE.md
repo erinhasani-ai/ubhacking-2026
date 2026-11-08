@@ -128,3 +128,10 @@ A ticket is not done until every one of its gates shows passing evidence here.
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_phyphox
   EXPECT: /phyphox_ok samples=([1-9]\d{2,}) rate_hz=\d+ rtt_ms=\d+/
   EVIDENCE: automatic-evidence=v1; definition-sha256=7f246074f1cdce59dc270d0678565143569403c156bd4638e93dfdba6a77cfa2; exit=0; EXPECT=matched; output-sha256=e6f9751a099086f26f2634b3a89f9fdcc501e34d8d1c33a2e1b9f89e40eda451; output-bytes=44; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t5-phyphox; path=441ef2ff855b/30 entries
+
+## T20 — Put-That-There (ray history)
+
+- [x] T20.G1: With a scripted ray history and word timings on the engine clock, "there" picks the ray at the word's start, the latest "there" wins, punctuation and case don't matter, no ray near the word gives none, and the history keeps only its window
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core ray_history::
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=d9bc531a7845c01e81312db4c1438528507d307e569e8f4ee0def840eaab1956; exit=0; EXPECT=matched; output-sha256=b8caac3ee294cb6df8145556688dd0867d6a03900b5f07067cd88da01e106cad; output-bytes=830; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t20-rays; path=d082171f4bb6/24 entries
