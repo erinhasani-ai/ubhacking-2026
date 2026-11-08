@@ -15,7 +15,7 @@ use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::State;
 use axum::http::{header, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::Router;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -70,6 +70,9 @@ pub async fn serve(listener: TcpListener, cfg: Config) {
     });
     let app = Router::new()
         .route("/ws", get(|ws: WebSocketUpgrade, State(s): State<Arc<Shared>>| async move { ws.on_upgrade(move |sock| connection(sock, s)) }))
+        .route("/api/tts", post(tts))
+        .route("/api/stt", post(stt))
+        .route("/api/accel", get(accel))
         .fallback(static_file)
         .with_state(shared);
     if let Err(e) = axum::serve(listener, app).await {
@@ -103,6 +106,66 @@ async fn static_file(State(s): State<Arc<Shared>>, uri: Uri) -> Response {
     match tokio::fs::read(&path).await {
         Ok(bytes) => ([(header::CONTENT_TYPE, content_type)], bytes).into_response(),
         Err(_) => StatusCode::NOT_FOUND.into_response(),
+    }
+}
+
+// Campus voice (T32). JSON and audio/* bodies are not CORS-safelisted, so another site's page cannot call these
+// without a preflight, which this server never answers.
+#[derive(Deserialize)]
+struct TtsRequest {
+    text: String,
+}
+
+async fn tts(axum::Json(req): axum::Json<TtsRequest>) -> Response {
+    let text = req.text.trim();
+    if text.is_empty() || text.chars().count() > 600 {
+        return (StatusCode::BAD_REQUEST, "text must be 1-600 characters").into_response();
+    }
+    match crate::voice::speak_mp3(text).await {
+        Ok(mp3) => ([(header::CONTENT_TYPE, "audio/mpeg")], mp3).into_response(),
+        Err(e) => (StatusCode::BAD_GATEWAY, e.to_string()).into_response(),
+    }
+}
+
+async fn stt(headers: axum::http::HeaderMap, body: axum::body::Bytes) -> Response {
+    let mime = headers.get(header::CONTENT_TYPE).and_then(|v| v.to_str().ok()).unwrap_or("");
+    if !mime.starts_with("audio/") || body.is_empty() {
+        return (StatusCode::BAD_REQUEST, "send one recorded utterance as audio/*").into_response();
+    }
+    match crate::voice::transcribe(body.to_vec(), mime).await {
+        Ok(text) => axum::Json(json!({ "text": text })).into_response(),
+        Err(e) => (StatusCode::BAD_GATEWAY, e.to_string()).into_response(),
+    }
+}
+
+// Phone accelerometer for the campus quake trigger (T33): the engine polls phyphox (PHYPHOX_URL) so the browser
+// never talks to the phone. Each GET returns the [t, |a|] samples since the previous call; a failure drops the
+// session so the next call reconnects.
+static PHONE: std::sync::OnceLock<tokio::sync::Mutex<Option<(crate::phyphox::Client, crate::phyphox::Reader)>>> = std::sync::OnceLock::new();
+
+async fn accel() -> Response {
+    let mut phone = PHONE.get_or_init(|| tokio::sync::Mutex::new(None)).lock().await;
+    if phone.is_none() {
+        let opened = async {
+            let url = std::env::var("PHYPHOX_URL").map_err(|_| anyhow::anyhow!("PHYPHOX_URL is not set"))?;
+            let c = crate::phyphox::Client::new(&url)?;
+            c.clear().await?;
+            c.start().await?;
+            anyhow::Ok(c)
+        }
+        .await;
+        match opened {
+            Ok(c) => *phone = Some((c, crate::phyphox::Reader::default())),
+            Err(e) => return (StatusCode::BAD_GATEWAY, format!("phone not reachable: {e}")).into_response(),
+        }
+    }
+    let (c, r) = phone.as_mut().expect("opened above");
+    match c.poll(r).await {
+        Ok(samples) => axum::Json(json!({ "samples": samples.iter().map(|s| [s.t, s.magnitude]).collect::<Vec<_>>() })).into_response(),
+        Err(e) => {
+            *phone = None;
+            (StatusCode::BAD_GATEWAY, format!("phone read failed: {e}")).into_response()
+        }
     }
 }
 

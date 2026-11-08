@@ -261,3 +261,29 @@ A ticket is not done until every one of its gates shows passing evidence here.
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-engine --lib
   EXPECT: /test result: ok\. [1-9]\d* passed/
   EVIDENCE: automatic-evidence=v1; definition-sha256=3a8f61d9c4dad2d6c37436f1b069f810eed5dbb022e72d605ce47d63b878a3fc; exit=0; EXPECT=matched; output-sha256=3557ec2c71bd483c9f71f184704dda8753587ab3dd05bf3ae6e46201e0648089; output-bytes=2960; shell=/bin/sh; cwd=~/Documents/UBHacking2026; path=d0822520b261/32 entries
+
+## T15 — Web UI shell
+
+- [ ] T15.G1: The web UI builds for production
+  CHECK: npm run build
+  EXPECT: /built in \d/
+  CWD: src/web
+  EVIDENCE: pending
+
+- [ ] T15.G2: Headless Chrome against the mock stream shows the point cloud and 6 Drones, a click sends a Command whose Verdict appears, LIVE/SIM labels are visible, and the map's frame rate over 5 s is measured
+  CHECK: node tests/web_ui.mjs
+  EXPECT: /web_ui_ok points=[1-9]\d{3,} drones=6 verdict=1 labels=1 fps=([3-9]\d|1\d\d)/
+  EVIDENCE: pending
+
+- [ ] T15.G3: In a real Chrome window the map holds at least 55 fps at both laptop and external-display viewport sizes, with DevTools performance traces saved
+  CHECK: node tests/web_ui.mjs --headed
+  EXPECT: /web_ui_ok .*fps=(5[5-9]|[6-9]\d|1\d\d) external_fps=(5[5-9]|[6-9]\d|1\d\d)/
+  EVIDENCE: pending
+
+- [ ] T15.G4: Screenshot review against the installed design skills finds no blocking issue; saved test-room provenance is accurate, controls remain usable, and the layout fits both viewports
+  EVIDENCE: pending
+
+- [ ] T15.G5: Visual cloud enhancement preserves retained coordinates, removes duplicates and isolated/non-finite samples, fills only bounded short gaps, respects its density cap, and leaves input unchanged
+  CHECK: node tests/cloud_enhancement.mjs
+  EXPECT: cloud_enhancement_ok
+  EVIDENCE: pending
