@@ -81,9 +81,11 @@ pub struct Point {
 impl Command {
     /// Parses and validates one Command. Every source must go through here.
     pub fn from_json(json: &str) -> Result<Command, String> {
+        // The Value pre-pass only rejects shapes serde accepts but the contract forbids. The Command is built
+        // from the original text, because a Value silently keeps the last of duplicate keys.
         let value: serde_json::Value = serde_json::from_str(json).map_err(|e| e.to_string())?;
         reject_arrays(&value, false)?;
-        let command: Command = serde_json::from_value(value).map_err(|e| e.to_string())?;
+        let command: Command = serde_json::from_str(json).map_err(|e| e.to_string())?;
         command.validate()?;
         Ok(command)
     }
@@ -157,6 +159,8 @@ fn reject_arrays(value: &serde_json::Value, is_ids: bool) -> Result<(), String> 
             items.iter().try_for_each(|v| reject_arrays(v, false))
         }
         serde_json::Value::Object(map) => map.iter().try_for_each(|(k, v)| reject_arrays(v, k == "ids")),
+        // No wire form uses null; serde would take {"all":null} as the bare word "all".
+        serde_json::Value::Null => Err("null is not allowed".into()),
         _ => Ok(()),
     }
 }
@@ -203,6 +207,29 @@ mod tests {
         rejected(json!({"kind": "dispatch", "drones": "all", "target": ["door"]}));
         rejected(json!({"kind": "dispatch", "drones": "all", "target": [[1, 2, 3]]}));
         rejected(json!({"kind": "dispatch", "drones": "all", "target": {"point": [1, 2, 3]}}));
+    }
+
+    #[test]
+    fn duplicate_keys_are_rejected() {
+        for text in [
+            r#"{"kind":"abort","kind":"dispatch","drones":"all","target":"there"}"#,
+            r#"{"kind":"advance","kind":"abort"}"#,
+            r#"{"kind":"advance","drones":{"count":9,"count":2}}"#,
+            r#"{"kind":"dispatch","drones":"all","target":"there","target":{"place":"door"}}"#,
+            r#"{"kind":"advance","drones":{"ids":[1],"ids":[2]}}"#,
+            r#"{"kind":"dispatch","drones":"all","target":{"place":"a","place":"door"}}"#,
+            r#"{"kind":"dispatch","drones":"all","target":{"point":{"n":1,"n":2,"e":0,"d":0}}}"#,
+        ] {
+            assert!(Command::from_json(text).is_err(), "accepted: {text}");
+        }
+    }
+
+    #[test]
+    fn map_form_of_a_word_is_rejected() {
+        rejected(json!({"kind": "advance", "drones": {"all": null}}));
+        rejected(json!({"kind": "advance", "drones": {"all": {}}}));
+        rejected(json!({"kind": "dispatch", "drones": "all", "target": {"there": null}}));
+        rejected(json!({"kind": "dispatch", "drones": "all", "target": {"there": {}}}));
     }
 
     #[test]

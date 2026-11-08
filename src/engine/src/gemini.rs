@@ -34,7 +34,7 @@ pub async fn generate(client: &reqwest::Client, api_key: &str, model: &str, tran
         "systemInstruction": {"parts": [{"text": SYSTEM}]},
         "contents": [{"role": "user", "parts": [{"text": transcript}]}],
         "tools": [{"functionDeclarations": declarations()}],
-        // MINIMAL is the lowest thinking level the docs list for gemini-3.6-flash (lowest latency).
+        // MINIMAL is the lowest thinking level the docs list (lowest latency); verified on gemini-3.6-flash and gemini-3.5-flash-lite.
         "generationConfig": {"thinkingConfig": {"thinkingLevel": "MINIMAL"}}
     });
     // The key travels only in the header: reqwest error text prints the URL.
@@ -114,8 +114,10 @@ fn normalise_place(raw: &str) -> String {
 mod tests {
     use super::*;
 
-    // Trimmed copies of live generateContent replies from gemini-3.6-flash (thoughtSignature and usage removed).
+    // Trimmed copies of live generateContent replies from gemini-3.6-flash (thoughtSignature, usage, finishMessage, modelVersion and responseId removed).
     const DISPATCH_REPLY: &str = r#"{"candidates":[{"content":{"parts":[{"functionCall":{"name":"dispatch","args":{"drone_count":2,"place":"door"},"id":"call_4541055487298339433"}}],"role":"model"},"finishReason":"STOP","index":0}]}"#;
+    // Live reply (gemini-3.6-flash) to "Aether, the weather is nice today": no parts at all.
+    const NO_PARTS_REPLY: &str = r#"{"candidates":[{"content":{},"finishReason":"STOP","index":0}]}"#;
     // Hand-written (not a live capture): a reply with a real text part and no function call.
     const TEXT_ONLY_REPLY: &str = r#"{"candidates":[{"content":{"parts":[{"text":"That is not a command for the swarm."}],"role":"model"},"finishReason":"STOP","index":0}]}"#;
     // Live reply to "Aether, send drone four there": drone ids and the pointing flag.
@@ -139,6 +141,11 @@ mod tests {
     fn there_reply_maps_to_the_there_target() {
         let command = to_command(&reply(THERE_REPLY)).unwrap().unwrap();
         assert_eq!(command.to_json(), r#"{"kind":"dispatch","drones":{"ids":[4]},"target":"there"}"#);
+    }
+
+    #[test]
+    fn reply_with_no_parts_gives_no_command() {
+        assert_eq!(to_command(&reply(NO_PARTS_REPLY)), Ok(None));
     }
 
     #[test]
