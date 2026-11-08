@@ -100,3 +100,15 @@ A ticket is not done until every one of its gates shows passing evidence here.
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo build --workspace && PATH="$HOME/.cargo/bin:$PATH" cargo build -p aether-wasm --target wasm32-unknown-unknown && echo "build"_ok
   EXPECT: build_ok
   EVIDENCE: automatic-evidence=v1; definition-sha256=265ddc570007970cd30af7a31f591985c85c3c469b7cf46e67a4a783d735b3c5; exit=0; EXPECT=matched; output-sha256=f79d7c9d2655adda1b2e7aeb2ff4e62ce74e50bdd9b02ee0e22d5682278b05dc; output-bytes=154; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
+
+## T8 — Mission frame and Launch pad
+
+- [ ] T8.G1: The Mission frame matches known answers: scan to Mission and back is exact, N × E = D (right-handed), and the Launch pad maps to (0, 0, −table height)
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core frame::
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: pending
+
+- [ ] T8.G2: On the real scan, the Launch pad sits on a level occupied table top at table height, with free space above it for six pad slots 0.4 m apart
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_pad
+  EXPECT: /pad_ok table_height_m=(0\.[5-9]|1\.0)\d* level_mm=\d+ slots_free=6/
+  EVIDENCE: pending
