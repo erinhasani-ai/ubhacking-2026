@@ -32,11 +32,11 @@ import { buildPlan } from './plan';
 import type { Hello, State } from './stream';
 
 const INK = '#ece7df';
-const ACCENT = '#58baff';
-const ACCENT_HOVER = '#8cd1ff';
-const ACCENT_SELECTED = '#c2e8ff';
+const ACCENT = '#e3c07c'; // champagne: Drones and the active target stand apart from the blue scan
+const ACCENT_HOVER = '#eed39f';
+const ACCENT_SELECTED = '#fff0cc';
 const STALE_OPACITY = 0.4;
-const GROUND = '#070d14';
+const GROUND = '#06080d';
 
 /** Height above the floor above which the scan's ceiling is cut away, like a plan section. */
 export const CEILING_CUT_M = 2.35; // Davis third-floor corridors: ceiling about 2.7 m above the floor
@@ -535,6 +535,9 @@ export function createScene(canvas: HTMLCanvasElement, on: SceneHandlers, reduce
   // Until the operator moves the camera, keep the room framed as the window or the HUD changes size.
   let framed: { min: number[]; max: number[] } | null = null;
   let home: { target: Vector3; position: Vector3 } | null = null;
+  let zoomGoal = 0;
+  const zoomDir = new Vector3();
+  controls.addEventListener('start', () => (zoomGoal = 0));
   let userMoved = false;
   controls.addEventListener('start', () => (userMoved = true));
   const onResize = () => {
@@ -797,6 +800,13 @@ export function createScene(canvas: HTMLCanvasElement, on: SceneHandlers, reduce
       else if (f > 0) marker.material.opacity = 1 - f;
     }
 
+    if (zoomGoal) {
+      const dist = camera.position.distanceTo(controls.target);
+      const next = dist + (zoomGoal - dist) * (reducedMotion() ? 1 : 1 - Math.exp(-dt * 12));
+      zoomDir.subVectors(camera.position, controls.target).setLength(next);
+      camera.position.copy(controls.target).add(zoomDir);
+      if (Math.abs(next - zoomGoal) < zoomGoal * 0.002) zoomGoal = 0;
+    }
     holoU.uTime.value = now / 1000;
     holoU.uMotion.value = reducedMotion() ? 0 : 1;
     controls.enableDamping = !reducedMotion();
@@ -865,6 +875,11 @@ export function createScene(canvas: HTMLCanvasElement, on: SceneHandlers, reduce
       pointsMat.uniforms.uOpacity.value = holoOn ? 0.6 : 1;
       return { walls: plan.walls.length / 18 };
     },
+    /** Zooms by a factor of the current distance (below 1 is closer), gliding there; clamped to the controls' range. */
+    zoomBy(f: number) {
+      const from = zoomGoal || camera.position.distanceTo(controls.target);
+      zoomGoal = Math.min(controls.maxDistance, Math.max(controls.minDistance, from * f));
+    },
     setHolo(on: boolean) {
       holoOn = on;
       holo.visible = on && holo.children.length > 0;
@@ -873,6 +888,7 @@ export function createScene(canvas: HTMLCanvasElement, on: SceneHandlers, reduce
     /** Back to the framed overview of the whole scan. */
     resetView() {
       if (!home) return;
+      zoomGoal = 0;
       controls.target.copy(home.target);
       camera.position.copy(home.position);
       controls.update();

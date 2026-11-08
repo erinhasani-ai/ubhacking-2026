@@ -1,24 +1,26 @@
-/* Aether field instrument: deep navy ground, translucent blue Room Twin, one blue accent. */
+/* Aether, midnight and champagne: blue-black glass over the maps, ivory type, one champagne accent.
+   The scan and the campus keep their own blues, so the accent (Drones, selection, the active control) stands apart. */
 :root {
-  --ground: #070d14;
-  --panel: rgba(9, 18, 29, 0.92);
-  --panel-solid: #09121d;
-  --hairline: rgba(236, 231, 223, 0.1);
-  --hairline-strong: rgba(236, 231, 223, 0.18);
-  --wash: rgba(236, 231, 223, 0.06);
-  --wash-press: rgba(236, 231, 223, 0.1);
-  --ink: #e4eff8;
-  --ink-2: #acbecf;
-  --ink-3: #8f9faf;
-  --accent: #58baff; /* holographic blue: selection, the active Command, Abort */
-  --accent-ink: #061220;
+  --ground: #06080d;
+  --panel: rgba(12, 15, 23, 0.86);
+  --panel-solid: #0c0f17;
+  --hairline: rgba(243, 232, 210, 0.09);
+  --hairline-strong: rgba(243, 232, 210, 0.18);
+  --wash: rgba(243, 232, 210, 0.06);
+  --wash-press: rgba(243, 232, 210, 0.11);
+  --ink: #f3eee4;
+  --ink-2: #c2baab;
+  --ink-3: #9a9284;
+  --accent: #e3c07c; /* champagne: selection, the active Command, the current view, Abort */
+  --accent-ink: #1b1407;
+  --font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
 
   --font-text: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-data: 'Geist Mono Variable', ui-monospace, Menlo, monospace;
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --radius: 10px;
-  --radius-sm: 6px;
+  --radius: 14px;
+  --radius-sm: 10px;
   --gutter: 1.25rem;
   --tap: max(44px, 2.75rem);
 
@@ -52,18 +54,26 @@ body {
 }
 
 ::selection {
-  background: rgba(88, 186, 255, 0.35);
+  background: rgba(227, 192, 124, 0.32);
   color: var(--ink);
 }
 
 :focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-button {
+button,
+input {
   font: inherit;
   color: inherit;
+}
+input {
+  caret-color: var(--accent);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(227, 192, 124, 0.3) transparent;
 }
 
 .data {

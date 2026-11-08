@@ -1,6 +1,7 @@
 // Campus page (T32/T33): UB North Campus from OpenStreetMap, three simulated Drone teams, simulated fire response.
 // Commands come from hands-free voice (ElevenLabs Scribe via the engine), the command box or the example chips.
 import '@fontsource-variable/geist-mono';
+import '@fontsource/instrument-serif';
 import '../app.css';
 import { mount } from 'svelte';
 import Campus from './Campus.svelte';
@@ -220,6 +221,9 @@ async function main() {
     igniteHere() {
       if (picked) run(`Simulate a fire at ${picked.name ?? 'this building'}`);
     },
+    zoomIn: () => scene.zoomBy(0.7),
+    zoomOut: () => scene.zoomBy(1.45),
+    overview: () => scene.overview(),
     focusFire() {
       if (sim.fire) scene.focus(sim.fire.at);
     },
@@ -234,6 +238,9 @@ async function main() {
       if (!e.repeat) toggleListening();
     } else if (e.key === 'Escape') run('Abort');
     else if ((e.key === 'r' || e.key === 'R') && !e.repeat) run('Reset');
+    else if (e.key === '+' || e.key === '=') actions.zoomIn();
+    else if (e.key === '-' || e.key === '_') actions.zoomOut();
+    else if (e.key === 'v' || e.key === 'V') actions.overview();
   });
 
   // HUD at about 10 Hz.
@@ -264,7 +271,8 @@ async function main() {
   }, 100);
 
   mount(Campus, { target: document.getElementById('app')!, props: { actions } });
-  log('aether', 'Campus ready. Press Space or Start listening, then say "All teams, patrol the campus".');
+  log('aether', 'Campus ready. The mic is on: say "All teams, patrol the campus". Tap the mic button to turn it off.');
+  toggleListening(); // hands-free from the start; the mic button turns it off
 
   // Test-only, read-only hook for screenshots and checks.
   Object.defineProperty(window, '__campus', { value: Object.freeze({ sim, run, stats: () => scene.stats() }) });

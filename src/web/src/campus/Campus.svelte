@@ -1,5 +1,7 @@
 <script lang="ts">
   import { ui } from './hud.svelte';
+  import MapControls from '../MapControls.svelte';
+  import Nav from '../Nav.svelte';
 
   interface Actions {
     run(text: string): void;
@@ -8,13 +10,16 @@
     toggleStream(): void;
     igniteHere(): void;
     focusFire(): void;
+    zoomIn(): void;
+    zoomOut(): void;
+    overview(): void;
   }
   let { actions }: { actions: Actions } = $props();
 
   let text = $state('');
   const EXAMPLES = ['All teams, patrol the campus', 'Simulate a fire at Capen Hall', 'Bravo, go to Lockwood Library', 'Simulate an earthquake', 'Status report', 'All teams, return to base'];
   const STATUS = { burning: 'Burning', contained: 'Contained', out: 'Out' } as const;
-  const micWords = $derived({ off: 'Start listening', listening: 'Listening', hearing: 'Hearing you…', transcribing: 'Transcribing…' }[ui.mic]);
+  const micWords = $derived({ off: 'Mic off · tap to enable', listening: 'Listening · tap to disable', hearing: 'Hearing you…', transcribing: 'Transcribing…' }[ui.mic]);
 
   function submit(e: SubmitEvent) {
     e.preventDefault();
@@ -23,11 +28,13 @@
   }
 </script>
 
+<Nav current="campus" />
+<MapControls zoomIn={actions.zoomIn} zoomOut={actions.zoomOut} overview={actions.overview} />
+
 <header class="panel identity">
   <div class="brand">
     <h1 class="wordmark">Aether</h1>
     <span class="sub">Campus safety</span>
-    <a class="switch" href="./">Room Twin</a>
   </div>
   <button class="key small stream-toggle" aria-pressed={ui.streamOpen} onclick={actions.toggleStream}>
     Data stream <span class="data">{ui.rate.msgs}</span> msg/s
@@ -209,21 +216,14 @@
   }
   .wordmark {
     margin: 0;
-    font-size: 1.15rem;
-    font-weight: 650;
-    letter-spacing: -0.015em;
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.01em;
   }
   .sub {
     color: var(--ink-2);
-  }
-  .switch {
-    margin-left: auto;
-    color: var(--accent);
-    text-decoration: none;
-    padding: 0.6rem 0 0.6rem 0.5rem;
-  }
-  .switch:hover {
-    text-decoration: underline;
   }
   .room {
     display: flex;
@@ -270,8 +270,10 @@
   }
   h2 {
     margin: 0;
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 400;
+    line-height: 1.1;
   }
   .teams {
     padding: 0.75rem 0.9rem 0.5rem;
@@ -419,7 +421,7 @@
   .stream {
     position: fixed;
     left: var(--gutter);
-    top: 10.5rem;
+    top: 13rem;
     width: min(36rem, calc(100vw - 22rem - 3 * var(--gutter)));
     max-height: calc(100vh - 10.5rem - 22rem);
     overflow: hidden;
@@ -615,7 +617,7 @@
     color: var(--accent-ink);
   }
   .mic-words {
-    min-width: 7.5rem;
+    min-width: 12.5rem;
   }
   .mic[data-state='listening'] {
     border-color: var(--accent);
@@ -653,9 +655,11 @@
       background-color: var(--wash);
       color: var(--ink);
     }
-    .key.abort:hover,
+    .key.abort:hover {
+      background-color: #ecd09a;
+    }
     .mic[aria-pressed='true']:hover {
-      background-color: #7cc9ff;
+      background-color: var(--wash-press);
     }
   }
   @media (prefers-reduced-motion: no-preference) {

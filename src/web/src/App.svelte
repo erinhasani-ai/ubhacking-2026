@@ -1,5 +1,7 @@
 <script lang="ts">
   import { hud } from './hud.svelte';
+  import MapControls from './MapControls.svelte';
+  import Nav from './Nav.svelte';
 
   interface Actions {
     select(id: number, shift: boolean): void;
@@ -9,6 +11,8 @@
     retryNow(): void;
     toggleHolo(): void;
     resetView(): void;
+    zoomIn(): void;
+    zoomOut(): void;
     sendPlace(place: string): void;
   }
   let { actions }: { actions: Actions } = $props();
@@ -29,6 +33,9 @@
   );
 </script>
 
+<Nav current="floor" />
+<MapControls zoomIn={actions.zoomIn} zoomOut={actions.zoomOut} overview={actions.resetView} />
+
 <header class="panel identity">
   <div class="brand">
     <h1 class="wordmark">Aether</h1>
@@ -37,7 +44,6 @@
       <span>{linkText}</span>
       <span class="endpoint data">{endpoint}</span>
     </span>
-    <a class="campus" href="campus.html">Campus</a>
   </div>
   {#if hud.room}
     <p class="room">
@@ -181,9 +187,11 @@
   }
   .wordmark {
     margin: 0;
-    font-size: 1.15rem;
-    font-weight: 650;
-    letter-spacing: -0.015em;
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.01em;
   }
   .link {
     display: inline-flex;
@@ -205,15 +213,6 @@
   .endpoint {
     color: var(--ink-3);
     font-size: 0.75rem;
-  }
-  .campus {
-    margin-left: auto;
-    padding: 0.6rem 0 0.6rem 0.5rem;
-    color: var(--accent);
-    text-decoration: none;
-  }
-  .campus:hover {
-    text-decoration: underline;
   }
   .room {
     display: flex;
@@ -283,9 +282,11 @@
     padding: 0.75rem 0.5rem 0.6rem;
   }
   h2 {
-    margin: 0 0.4rem 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 600;
+    margin: 0 0.4rem 0.55rem;
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 400;
+    line-height: 1.1;
   }
   .cols,
   .row {
@@ -434,8 +435,11 @@
     color: var(--ink-3);
     font-size: 0.8rem;
   }
+  .places {
+    padding: 0.8rem 0.9rem 0.85rem;
+  }
   .places h2 {
-    margin: 0 0 0.6rem;
+    margin: 0 0 0.65rem;
   }
   .chips {
     display: flex;
@@ -506,7 +510,7 @@
       background-color: var(--wash-press);
     }
     .key.abort:hover {
-      background-color: #ff7b33;
+      background-color: #ecd09a;
     }
   }
   .row:active,
@@ -514,7 +518,7 @@
     background-color: var(--wash-press);
   }
   .key.abort:active {
-    background-color: #f25f10;
+    background-color: #d6ae63;
   }
   @media (prefers-reduced-motion: no-preference) {
     .row:active,

@@ -1,4 +1,5 @@
 import '@fontsource-variable/geist-mono';
+import '@fontsource/instrument-serif';
 import './app.css';
 import { mount } from 'svelte';
 import App from './App.svelte';
@@ -204,6 +205,8 @@ const actions = {
     hud.holo = !hud.holo;
     scene.setHolo(hud.holo);
   },
+  zoomIn: () => scene.zoomBy(0.7),
+  zoomOut: () => scene.zoomBy(1.45),
   resetView() {
     if (hud.follow) actions.toggleFollow();
     scene.resetView();
@@ -221,6 +224,8 @@ addEventListener('keydown', (e) => {
   else if (e.key === 'f' || e.key === 'F') actions.toggleFollow();
   else if (e.key === 'h' || e.key === 'H') actions.toggleHolo();
   else if (e.key === 'v' || e.key === 'V') actions.resetView();
+  else if (e.key === '+' || e.key === '=') actions.zoomIn();
+  else if (e.key === '-' || e.key === '_') actions.zoomOut();
   else return;
   e.preventDefault();
 });

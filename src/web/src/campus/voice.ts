@@ -113,6 +113,15 @@ export function createListener(on: { phrase(wav: Blob): void; state(s: 'off' | '
     async start() {
       stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
       ctx = new AudioContext();
+      if (ctx.state === 'suspended') {
+        const wake = () => {
+          ctx?.resume();
+          removeEventListener('pointerdown', wake);
+          removeEventListener('keydown', wake);
+        };
+        addEventListener('pointerdown', wake);
+        addEventListener('keydown', wake);
+      }
       src = ctx.createMediaStreamSource(stream);
       // shortcut: ScriptProcessorNode is deprecated but needs no worklet file; move to an AudioWorklet after the event.
       node = ctx.createScriptProcessor(2048, 1, 1);

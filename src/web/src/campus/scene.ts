@@ -4,9 +4,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
-const ACCENT = 0x58baff;
+const ACCENT = 0xe3c07c; // champagne, the UI accent
 const FIRE = 0xff6a2c;
-const GROUND = 0x070d14;
+const GROUND = 0x06080d;
 const LABELLED = ['Davis Hall', 'Capen Hall', 'Lockwood Memorial Library', 'Student Union', 'Norton Hall', 'Natural Sciences Complex', 'Center for the Arts', 'Furnas Hall', "O'Brian Hall"];
 
 type XY = [number, number];
@@ -247,7 +247,10 @@ export function createCampusScene(canvas: HTMLCanvasElement, overlay: HTMLElemen
   });
 
   let goal: THREE.Vector3 | null = null;
-  controls.addEventListener('start', () => (goal = null));
+  let zoomGoal = 0;
+  const zoomDir = new THREE.Vector3();
+  const home = { target: controls.target.clone(), position: camera.position.clone() };
+  controls.addEventListener('start', () => ((goal = null), (zoomGoal = 0)));
 
   function resize() {
     const w = innerWidth;
@@ -359,6 +362,13 @@ export function createCampusScene(canvas: HTMLCanvasElement, overlay: HTMLElemen
       camera.position.add(delta);
       if (delta.lengthSq() < 0.01) goal = null;
     }
+    if (zoomGoal) {
+      const dist = camera.position.distanceTo(controls.target);
+      const next = dist + (zoomGoal - dist) * (reducedMotion() ? 1 : 1 - Math.exp(-dt * 12));
+      zoomDir.subVectors(camera.position, controls.target).setLength(next);
+      camera.position.copy(controls.target).add(zoomDir);
+      if (Math.abs(next - zoomGoal) < zoomGoal * 0.002) zoomGoal = 0;
+    }
     controls.update();
     renderer.render(scene, camera);
 
@@ -398,6 +408,19 @@ export function createCampusScene(canvas: HTMLCanvasElement, overlay: HTMLElemen
       pingKind[i] = kind;
       pingGeo.attributes.position.needsUpdate = true;
       pingGeo.attributes.kind.needsUpdate = true;
+    },
+    /** Zooms by a factor of the current distance (below 1 is closer), gliding there; clamped to the controls' range. */
+    zoomBy(f: number) {
+      const from = zoomGoal || camera.position.distanceTo(controls.target);
+      zoomGoal = Math.min(controls.maxDistance, Math.max(controls.minDistance, from * f));
+    },
+    /** Back to the opening view of the whole campus. */
+    overview() {
+      goal = null;
+      zoomGoal = 0;
+      controls.target.copy(home.target);
+      camera.position.copy(home.position);
+      controls.update();
     },
     focus(xy: XY) {
       goal = v3(xy[0], xy[1], 0);
