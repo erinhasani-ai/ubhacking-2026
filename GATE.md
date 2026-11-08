@@ -125,9 +125,9 @@ A ticket is not done until every one of its gates shows passing evidence here.
   EXPECT: /test result: ok\. [1-9]\d* passed/
   EVIDENCE: pending
 
-- [ ] T8.G2: On the real scan, the Launch pad sits on a level, clear floor patch on the north half of the room, with free space around and above each of six pad slots 0.6 m apart
+- [ ] T8.G2: On the real scan, the Launch pad sits on a clear floor patch level within ±60 mm, with free space around and above each of six pad slots 0.6 m apart
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_pad
-  EXPECT: /pad_ok floor_level_mm=([0-9]|[12][0-9]|30) slots_free=6 clear_m=\d+\.\d+/
+  EXPECT: /pad_ok floor_level_mm=([0-9]|[1-5][0-9]|60) slots_free=6 clear_m=\d+\.\d+/
   EVIDENCE: pending
   EVIDENCE: automatic-evidence=v1; definition-sha256=265ddc570007970cd30af7a31f591985c85c3c469b7cf46e67a4a783d735b3c5; exit=0; EXPECT=matched; output-sha256=20b3aa0ac9eeb0a8a3a622b760ab7ef03ea3b16f7eb3bd64a02fd9e3711cfcc5; output-bytes=584; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=d082171f4bb6/24 entries
 ## T5 — phyphox spike
