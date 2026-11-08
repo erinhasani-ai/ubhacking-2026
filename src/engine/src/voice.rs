@@ -168,8 +168,9 @@ mod tests {
     // EDITED: audio_base64 cut to its first 16 chars; normalized_alignment and quality_check removed.
     const TTS: &str = r#"{"audio_base64":"AQABAP//AQABAAEA","alignment":{"characters":["G","o"," ","n","o","w","."],"character_start_times_seconds":[0.0,0.139,0.267,0.348,0.395,0.522,0.604],"character_end_times_seconds":[0.139,0.267,0.348,0.395,0.522,0.604,0.789]}}"#;
 
-    // Real Scribe replies from the probe, captured live 2026-11-07. Unedited.
+    // Real Scribe reply from the probe, captured live 2026-11-07. Unedited.
     const PARTIAL: &str = r#"{"message_type":"partial_transcript","text":"Ether, send 2 d"}"#;
+    // Real session_started. EDITED: config cut to sample_rate (the live one has about 22 fields).
     const STARTED_PREFIX: &str = r#"{"message_type":"session_started","session_id":"9f35c4fb3b344ef5bb16ee955ca745eb","config":{"sample_rate":16000}}"#;
     // Real committed_transcript_with_timestamps. EDITED: words cut after "drones" and the per-character arrays removed.
     const COMMITTED: &str = r#"{"message_type":"committed_transcript_with_timestamps","text":"Ether, send two drones to the door.","language_code":null,"words":[{"text":"Ether,","start":0.12,"end":0.48,"type":"word","speaker_id":null,"logprob":-0.5715459187825521,"channel_index":null},{"text":" ","start":0.48,"end":0.96,"type":"spacing","speaker_id":null,"logprob":-0.5698280334472656,"channel_index":null},{"text":"send","start":0.96,"end":1.2,"type":"word","speaker_id":null,"logprob":-0.7991170883178711,"channel_index":null},{"text":" ","start":1.2,"end":1.26,"type":"spacing","speaker_id":null,"logprob":-0.5836124420166016,"channel_index":null},{"text":"two","start":1.26,"end":1.38,"type":"word","speaker_id":null,"logprob":-0.5223026275634766,"channel_index":null},{"text":" ","start":1.38,"end":1.48,"type":"spacing","speaker_id":null,"logprob":-0.9169540405273438,"channel_index":null},{"text":"drones","start":1.48,"end":1.98,"type":"word","speaker_id":null,"logprob":-0.8268556594848633,"channel_index":null}]}"#;
