@@ -119,7 +119,7 @@ exec gitleaks git --pre-commit --staged --redact --no-banner
 ### Phone link (T5, 2026-11-07)
 - macOS 15 Local Network privacy blocks any non-Apple program from reaching the iPhone (172.20.10.1 over the USB hotspot) unless the app that launched it has Local Network access: System Settings → Privacy & Security → Local Network. The failure is `No route to host` (errno 65) while `curl` still works, because Apple's own binaries are exempt. After turning the switch on, quit and reopen that app (VS Code here; Terminal if the demo engine runs from there).
 - phyphox shows the phone's Wi-Fi address, but it also serves on the USB hotspot address, which is fixed and faster (SPEC decisions log).
-- phyphox reads a literal `|` in `/get` thresholds (`accX=<t>|acc_time`); a percent-encoded `%7C` makes it return everything since the start.
+- phyphox `/get` thresholds are sent with a literal `|` (`accX=<t>|acc_time`), the form verified on the live phone. A percent-encoded `%7C` returned everything since the start in one test while the experiment was recording, but worked in a later test while it was stopped; unverified, so the code avoids it.
 
 ### Sharing work between agents
 - `AGENTS.md` holds the rules for every agent; `CLAUDE.md` imports it with `@AGENTS.md`, so the rules exist once.

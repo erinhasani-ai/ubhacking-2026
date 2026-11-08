@@ -144,7 +144,8 @@ impl Client {
     }
 
     /// One /get asking only for samples newer than the reader's last one (-1 before the first sample).
-    /// The `|acc_time` threshold syntax must stay unencoded: the phone ignores a percent-encoded pipe.
+    /// The `|acc_time` threshold is sent as a literal pipe, the form verified on the live phone (a
+    /// percent-encoded pipe gave conflicting results in two tests, so it is avoided; unverified).
     pub async fn poll(&self, reader: &mut Reader) -> Result<Vec<Sample>> {
         let t = reader.last_t().unwrap_or(-1.0);
         let reply = self
@@ -158,7 +159,9 @@ impl Client {
 mod tests {
     use super::*;
 
-    // Real replies from the iPhone (phyphox "Acceleration with g"), trimmed to a few samples.
+    // Replies from the iPhone (phyphox "Acceleration with g"), trimmed to a few samples. CONFIG, FIRST and
+    // EMPTY are real replies; SECOND is a window of real samples overlapping FIRST (the phone itself only
+    // returns samples newer than the threshold); CHANGED has its session edited by hand; RAGGED is hand-written.
     const CONFIG: &str = r#"{"localCategory":"Raw Sensors","category":"Raw Sensors","buffers":[{"size":0,"name":"accZ"},{"size":0,"name":"accX"},{"size":0,"name":"accY"},{"size":0,"name":"acc"},{"size":0,"name":"acc_time"}],"localTitle":"Acceleration with g","crc32":"18545a17","title":"Acceleration with g"}"#;
 
     const FIRST: &str = r#"{"buffer":{"accX":{"updateMode":"partial","size":0,"buffer":[0.03861968994140625,0.02963836669921875,0.04296066284179688]},"accY":{"updateMode":"partial","size":0,"buffer":[0.18396743774414062,0.19294876098632813,0.17004638671875]},"accZ":{"updateMode":"partial","size":0,"buffer":[9.774224395751954,9.777068481445314,9.769284667968751]},"acc":{"updateMode":"partial","size":0,"buffer":[9.776031814448741,9.779017115641945,9.770858934402709]},"acc_time":{"updateMode":"partial","size":0,"buffer":[3.1467000832781196,3.1566700832918286,3.1666400833055377]}},"status":{"countDown":0,"session":"2443520","measuring":true,"timedRun":false}}"#;
