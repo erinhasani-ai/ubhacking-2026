@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
 use aether_core::vehicle::Drone;
+use aether_core::{frame, room_twin::OccupancyGrid};
 use mavlink::dialects::common::{
     ATTITUDE_DATA, COMMAND_ACK_DATA, COMMAND_LONG_DATA, EXTENDED_SYS_STATE_DATA, HEARTBEAT_DATA,
     LOCAL_POSITION_NED_DATA, MINOR_MAVLINK_VERSION, MavAutopilot, MavCmd, MavFrame,
@@ -72,8 +73,47 @@ pub struct Endpoint {
     boot: Instant,
     conn: Connection<MavMessage>,
     state: Mutex<State>,
-    /// NED d of the ground under this Drone (−height).
-    ground: f64,
+    ground: Ground,
+}
+
+/// Flat ground for standalone probes, or the shared scanned room for the demo.
+#[derive(Clone)]
+pub enum Ground {
+    Flat(f64),
+    Room(Arc<OccupancyGrid>),
+}
+
+impl Ground {
+    /// Surface top below a Mission-frame position. Scan floor drift maps to the pad plane.
+    pub fn below(&self, position: [f64; 3]) -> f64 {
+        let grid = match self {
+            Self::Flat(d) => return *d,
+            Self::Room(grid) => grid,
+        };
+        let p = frame::mission_to_scan(position);
+        let origin = grid.origin();
+        let dims = grid.dims();
+        let v = grid.voxel();
+        let x = ((p[0] - origin[0]) / v).floor();
+        let z = ((p[2] - origin[2]) / v).floor();
+        if x < 0.0 || z < 0.0 || x >= dims[0] as f64 || z >= dims[2] as f64 {
+            return 0.0;
+        }
+        for y in (0..dims[1]).rev() {
+            let top = origin[1] + (y + 1) as f64 * v;
+            if top > p[1] + 1e-9 || !grid.is_occupied([x as usize, y, z as usize]) {
+                continue;
+            }
+            let centre = top - v / 2.0;
+            // Assumed 20 cm band covers the measured floor drift (SPEC T9b).
+            return if (centre - frame::FLOOR_Y).abs() <= 0.20 {
+                0.0
+            } else {
+                frame::FLOOR_Y - top
+            };
+        }
+        0.0
+    }
 }
 
 /// Fires once per period on the wall clock; a late tick resets the schedule instead of bursting.
@@ -193,7 +233,8 @@ impl Endpoint {
     /// Advances the model by one physics step under the current mode.
     fn physics(&self, now: Instant) {
         let mut s = self.state.lock().unwrap();
-        s.drone.set_ground(self.ground);
+        let ground = self.ground.below(s.drone.position);
+        s.drone.set_ground(ground);
         match s.mode {
             Mode::Offboard => {
                 let target = s.setpoint.map(|(t, _)| t).unwrap_or(s.drone.position);
@@ -295,13 +336,17 @@ pub fn run(system_id: u8) -> Result<()> {
 /// sending to the ground station at `ground_station` (host:port).
 /// Each call opens its own UDP socket, so several can run in one process on separate threads.
 pub fn run_at(system_id: u8, start: [f64; 3], ground: f64, ground_station: &str) -> Result<()> {
+    run_on_ground(system_id, start, Ground::Flat(ground), ground_station)
+}
+
+/// Like `run_at`, with the ground sampled from the Room Twin on each physics step.
+pub fn run_on_ground(system_id: u8, start: [f64; 3], ground: Ground, ground_station: &str) -> Result<()> {
     let mut conn = connect::<MavMessage>(&format!("udpout:{ground_station}"))
         .with_context(|| format!("opening MAVLink UDP to {ground_station}"))?;
     conn.set_protocol_version(MavlinkVersion::V2);
     let mut drone = Drone::on_floor();
     drone.position = start;
-    // shortcut: one ground height for every Drone, upgrade in T9b (the Room Twin's ground under each Drone, after T8 lands)
-    drone.ground = ground;
+    drone.ground = ground.below(start);
     let endpoint = Arc::new(Endpoint {
         system_id,
         ground,
@@ -350,5 +395,75 @@ pub fn run_at(system_id: u8, start: [f64; 3], ground: f64, ground_station: &str)
             .min()
             .unwrap_or(now);
         thread::sleep(next.saturating_duration_since(Instant::now()));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use aether_core::room_twin::RoomMesh;
+
+    fn room_ground_fixture() -> Ground {
+        let mut mesh = RoomMesh { vertices: vec![], triangles: vec![] };
+        // Floor, table, ceiling. Coordinates are local to the pad, then mapped to the scan.
+        for (half, height) in [(2.0, 0.0), (0.5, 0.8), (2.0, 2.5)] {
+            let base = mesh.vertices.len() as u32;
+            for [n, e] in [[-half, -half], [-half, half], [half, half], [half, -half]] {
+                mesh.vertices.push(frame::mission_to_scan([n, e, -height]));
+            }
+            mesh.triangles.extend([[base, base + 1, base + 2], [base, base + 2, base + 3]]);
+        }
+        Ground::Room(Arc::new(OccupancyGrid::from_mesh(&mesh, 0.1).unwrap()))
+    }
+
+    #[test]
+    fn room_ground_ignores_ceiling_and_handles_floor_and_unknown_columns() {
+        let ground = room_ground_fixture();
+        assert!((ground.below([0.0, 0.0, -1.5]) + 0.85).abs() < 1e-9);
+        assert_eq!(ground.below([0.0, 0.0, -0.4]), 0.0); // Under the table.
+        assert_eq!(ground.below([1.0, 0.0, -1.5]), 0.0);
+        assert_eq!(ground.below([10.0, 0.0, -1.5]), 0.0);
+        assert!((ground.below([0.0, 0.0, -0.85]) + 0.85).abs() < 1e-9);
+        assert_eq!(Ground::Flat(-0.7).below([0.0; 3]), -0.7);
+    }
+
+    #[test]
+    fn room_ground_lands_on_table_then_flies_off_and_lands_on_floor() {
+        let ground = room_ground_fixture();
+        let mut drone = Drone::on_floor();
+        drone.position = [0.0, 0.0, -1.5];
+        drone.landed = false;
+        drone.arm();
+        for _ in 0..1500 {
+            drone.set_ground(ground.below(drone.position));
+            drone.land_step(PHYSICS_DT);
+        }
+        assert!(drone.landed);
+        assert!((drone.position[2] + 0.85).abs() < 1e-9);
+        for target in [[0.0, 0.0, -1.5], [1.0, 0.0, -1.5]] {
+            for _ in 0..1500 {
+                drone.set_ground(ground.below(drone.position));
+                drone.step(PHYSICS_DT, target);
+            }
+        }
+        assert!((drone.position[0] - 1.0).abs() < 0.02);
+        for _ in 0..1500 {
+            drone.set_ground(ground.below(drone.position));
+            drone.land_step(PHYSICS_DT);
+        }
+        assert!(drone.landed);
+        assert_eq!(drone.position[2], 0.0);
+    }
+
+    #[test]
+    fn room_ground_floor_drift_stays_on_the_pad_plane() {
+        let mesh = RoomMesh {
+            vertices: [[-1.0, -1.0, -0.12], [-1.0, 1.0, -0.12], [1.0, 1.0, -0.12], [1.0, -1.0, -0.12]]
+                .map(frame::mission_to_scan).to_vec(),
+            triangles: vec![[0, 1, 2], [0, 2, 3]],
+        };
+        let ground = Ground::Room(Arc::new(OccupancyGrid::from_mesh(&mesh, 0.1).unwrap()));
+        assert_eq!(ground.below([0.0, 0.0, -1.0]), 0.0);
+        assert_eq!(ground.below([0.0; 3]), 0.0);
     }
 }
