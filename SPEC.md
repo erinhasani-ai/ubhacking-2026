@@ -3,7 +3,7 @@
 Status (2026-11-07 evening): grill complete. Spikes T1, T2, T6, T7 landed; T3–T5 open. Implementation plan T8–T30 is cut under Tickets → Implementation plan; hand tracking (T28–T30) joined Tier B in place of the rigid-body model. Vocabulary: GLOSSARY.md. Decisions with trade-offs: docs/adr/.
 
 ## Idea and track
-- Idea: Aether — a rescue swarm you command by voice and by pointing, flying through a LiDAR copy of the room the judges stand in. A real shake of the table, sensed by the phone, starts the mission. Picking the phone up turns it into a pointer. Hand signals to the laptop's webcam work alongside the voice: point, pinch, push the swarm forward, pull it back, or hold up an open palm to stop it. Spoken and hand commands become typed commands; a policy check approves or rejects each one before the swarm acts. "Abort" never waits for the AI.
+- Idea: Aether — a rescue swarm you command by voice and by pointing, flying through a LiDAR copy of a real room. The current scan is the test room; the actual judging room is not yet known. A real shake of the table, sensed by the phone, starts the mission. Picking the phone up turns it into a pointer. Hand signals to the laptop's webcam work alongside the voice: point, pinch, push the swarm forward, pull it back, or hold up an open palm to stop it. Spoken and hand commands become typed commands; a policy check approves or rejects each one before the swarm acts. "Abort" never waits for the AI.
 - Real vs simulated (must be shown in the UI and the pitch): the drones are simulated (SIM). The room geometry (LiDAR scan), the phone's motion, the voices, the operator's hand, and optionally the webcam's view of people are real (LIVE). Recorded runs played back are REPLAY.
 - Target: Overall (1st place). Also entering Radial Atoms, Best Use of Tiger Data, Best Use of ElevenLabs, Best Use of Gemini API, Best UI/UX Hack, Best Domain Name from GoDaddy Registry. Vultr decided in Tier C. Not entering Solana, Best Hardware, Most Over-Engineered.
 - Platform: web app on the laptop. A native Rust engine plus a browser UI. Hardware is only an iPhone 13 Pro Max (phyphox for sensors, a LiDAR scanning app for the room) and the laptop (webcam, mic, speakers). Nothing physical gets built.
@@ -24,7 +24,7 @@ Incident commanders of search-and-rescue teams after a building collapse. They m
 
 ## What does done look like? (acceptance criteria per feature)
 - Demo flow — what a judge sees end to end, in 3 minutes:
-  1. The LiDAR copy of this room on screen, drones on a launch pad, LIVE/SIM labels visible.
+  1. The LiDAR copy of the scanned room on screen, drones on a launch pad, LIVE/SIM labels visible. Identify it as the test-room scan unless the actual judging room has been scanned and revalidated.
   2. A judge shakes the table; the phone detects it; the alarm fires and the latency display shows the delay; the drones launch and start searching.
   3. Picking up the phone switches it from sensor to pointer; a target marker follows where it points.
   4. "Aether, send two drones there" (while pointing with the phone or a finger) sends two drones to that spot, routed around the scanned furniture. The transcript, the typed command, and the policy result are on screen.
@@ -112,6 +112,7 @@ Tier C (only if ahead at 01:00): T25, the full rigid-body Drone model (sensors, 
 - Unverified until T28: MediaPipe's hand-landmark speed in Chrome on this Intel Mac while the Room Twin renders; whether MediaPipe's handedness holds when the back of the hand faces the webcam (if not, the operator's gesture hand is set once in the UI); how to feed a recorded clip to Chrome for an automated gate.
 
 ## Decisions log (change this file first, then the code)
+- 2026-11-08 — The user confirmed T31's door, table, middle and west corner against the displayed map for the test room. The actual demo location is unknown. Keep these Places and the Launch pad tied to this scan; a replacement scan requires a fresh pad search, Place confirmation and clearance checks. Codex recovered T31 without copying the branch's obsolete planner.
 - 2026-11-08 — Gesture settings confirmed by the user in the Codex continuation: Push advances 1 m; Pull returns to the pad and lands; an open palm held for 0.5 s triggers Abort.
 - 2026-11-08 — T9b keeps the flat floor as the default and makes scanned surfaces opt-in with `--room`. The shared immutable occupancy grid is queried per physics tick; no additional dependency or terrain cache is needed for this room's small vertical column.
 - 2026-11-07 — Hackathon rules: AI assistants allowed; no pre-built template.
