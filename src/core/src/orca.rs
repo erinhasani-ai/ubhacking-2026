@@ -82,7 +82,9 @@ fn orca_plane(drone: &DroneState, other: &DroneState, inv_time_horizon: f64, inv
             let t = (b + (b * b - a * c).max(0.0).sqrt()) / a;
             let w = rel_vel - t * rel_pos;
             let w_len = w.length();
-            if w_len > 1e-9 * rel_vel.length() {
+            // Rounding in the cancelled discriminant leaves |w| near 1.5e-8·|rel_vel| on an exact head-on, so the
+            // threshold sits well above it; the front plane below is never less safe than the cone side.
+            if w_len > 1e-6 * rel_vel.length() {
                 (w / w_len, combined_radius * t - w_len)
             } else {
                 // Not in RVO2-3D: the relative velocity lies on the cone's axis (an exact head-on), where `w`
@@ -321,11 +323,11 @@ mod tests {
 
     #[test]
     fn head_on_pair_swaps_without_touching() {
-        // Exact symmetry deadlocks reciprocal avoidance (both Drones brake along the same line forever),
-        // so the second Drone starts 1 mm to the side. Both stay at the same height.
-        let a = DVec3::new(-2.0, 0.0, HEIGHT_Z);
-        let b = DVec3::new(2.0, 0.001, HEIGHT_Z);
-        let run = simulate(&[a, b], &[b, a], 20.0);
+        // Exact symmetry deadlocks reciprocal avoidance (both Drones brake along one line forever), so the
+        // two lanes are parallel and 2 cm apart: a near head-on that does not rely on rounding. Same height.
+        let (a, a_goal) = (DVec3::new(-2.0, 0.0, HEIGHT_Z), DVec3::new(2.0, 0.0, HEIGHT_Z));
+        let (b, b_goal) = (DVec3::new(2.0, 0.02, HEIGHT_Z), DVec3::new(-2.0, 0.02, HEIGHT_Z));
+        let run = simulate(&[a, b], &[a_goal, b_goal], 20.0);
         println!("head-on: min separation {:.6} m, arrivals {:?} s", run.min_separation, run.arrival_s);
         assert!(run.min_separation >= 2.0 * R - 1e-6, "came {} m close", run.min_separation);
         // 4 m straight at 1.5 m/s is 2.7 s; 8 s leaves room for the detour and the slow final approach.
@@ -379,6 +381,17 @@ mod tests {
         let v = DVec3::from_array(new_velocity(&me, &[other], TAU, DT));
         // Half of the closing speed that reaches the front of the cutoff sphere: ((2 - 0.6) / 2 s) / 2.
         assert!((v - DVec3::new(0.35, 0.0, 0.0)).length() < 1e-12, "{v}");
+    }
+
+    #[test]
+    fn exact_head_on_off_the_axes_brakes_as_much() {
+        // On a tilted line `w` is rounding noise, not zero; the guard must still take the front plane.
+        let d = DVec3::new(1.0, 1.0, 0.3).normalize();
+        let p = DVec3::new(0.0, 0.0, HEIGHT_Z);
+        let me = DroneState { position: p.to_array(), velocity: (1.5 * d).to_array(), radius: R, max_speed: MAX_SPEED, pref_velocity: (1.5 * d).to_array() };
+        let other = DroneState { position: (p + 2.0 * d).to_array(), velocity: (-1.5 * d).to_array(), pref_velocity: (-1.5 * d).to_array(), ..me };
+        let v = DVec3::from_array(new_velocity(&me, &[other], TAU, DT));
+        assert!((v - 0.35 * d).length() < 1e-9, "{v}");
     }
 
     #[test]
