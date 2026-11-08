@@ -9,7 +9,6 @@ import os
 os.environ['MAVLINK20'] = '1'  # must be set before pymavlink is imported
 
 import math
-import signal
 import subprocess
 import sys
 import threading
@@ -148,26 +147,19 @@ def start_sim():
     env['PATH'] = os.path.expanduser('~/.cargo/bin') + os.pathsep + env.get('PATH', '')
     subprocess.run(['cargo', 'build', '-q', '-p', 'aether-engine', '--bin', 'sim_drone'],
                    cwd=REPO, env=env, check=True)
-    # start_new_session puts cargo and the sim in their own process group, so killpg stops both.
-    return subprocess.Popen(
-        ['cargo', 'run', '-q', '-p', 'aether-engine', '--bin', 'sim_drone', '--', '--id', '1'],
-        cwd=REPO, env=env, start_new_session=True)
+    # The built binary directly, in our process group, so a group kill also kills it.
+    return subprocess.Popen([os.path.join(REPO, 'target', 'debug', 'sim_drone'), '--id', '1'],
+                            cwd=REPO)
 
 
 def stop_sim(proc):
     if proc is None:
         return
-    try:
-        os.killpg(proc.pid, signal.SIGTERM)
-    except ProcessLookupError:
-        pass
+    proc.terminate()
     try:
         proc.wait(timeout=5)
     except subprocess.TimeoutExpired:
-        try:
-            os.killpg(proc.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        proc.kill()
         proc.wait()
 
 
@@ -244,8 +236,12 @@ def main():
     sim = None
     link = None
     try:
-        sim = start_sim()
         link = GroundStation()
+        # Something else already sending to 14550 would be mistaken for our Drone.
+        if link.mav.recv_match(blocking=True, timeout=1.0) is not None:
+            print('mavlink_fail error=packets arrived on 14550 before the sim started')
+            return 1
+        sim = start_sim()
         result = run_sequence(link)
     except Fail as err:
         print(f'FAILED: {err}')

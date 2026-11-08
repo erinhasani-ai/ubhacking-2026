@@ -72,6 +72,8 @@ pub struct Endpoint {
     boot: Instant,
     conn: Connection<MavMessage>,
     state: Mutex<State>,
+    /// NED d of the ground under this Drone (−height).
+    ground: f64,
 }
 
 /// Fires once per period on the wall clock; a late tick resets the schedule instead of bursting.
@@ -176,7 +178,7 @@ impl Endpoint {
             MavLandedState::MAV_LANDED_STATE_ON_GROUND
         } else if s.mode == Mode::AutoLand {
             MavLandedState::MAV_LANDED_STATE_LANDING
-        } else if -s.drone.position[2] < AIRBORNE_ALTITUDE {
+        } else if s.drone.ground - s.drone.position[2] < AIRBORNE_ALTITUDE {
             MavLandedState::MAV_LANDED_STATE_TAKEOFF
         } else {
             MavLandedState::MAV_LANDED_STATE_IN_AIR
@@ -191,6 +193,7 @@ impl Endpoint {
     /// Advances the model by one physics step under the current mode.
     fn physics(&self, now: Instant) {
         let mut s = self.state.lock().unwrap();
+        s.drone.set_ground(self.ground);
         match s.mode {
             Mode::Offboard => {
                 let target = s.setpoint.map(|(t, _)| t).unwrap_or(s.drone.position);
@@ -285,15 +288,27 @@ impl Endpoint {
 
 /// Serves one Drone with the given system id to the ground station until the process ends.
 pub fn run(system_id: u8) -> Result<()> {
-    let mut conn = connect::<MavMessage>(&format!("udpout:{GROUND_STATION}"))
-        .with_context(|| format!("opening MAVLink UDP to {GROUND_STATION}"))?;
+    run_at(system_id, [0.0; 3], 0.0, GROUND_STATION)
+}
+
+/// Like `run`, with the Drone resting at `start` (NED metres) on ground at NED d `ground`,
+/// sending to the ground station at `ground_station` (host:port).
+/// Each call opens its own UDP socket, so several can run in one process on separate threads.
+pub fn run_at(system_id: u8, start: [f64; 3], ground: f64, ground_station: &str) -> Result<()> {
+    let mut conn = connect::<MavMessage>(&format!("udpout:{ground_station}"))
+        .with_context(|| format!("opening MAVLink UDP to {ground_station}"))?;
     conn.set_protocol_version(MavlinkVersion::V2);
+    let mut drone = Drone::on_floor();
+    drone.position = start;
+    // shortcut: one ground height for every Drone, upgrade in T9b (the Room Twin's ground under each Drone, after T8 lands)
+    drone.ground = ground;
     let endpoint = Arc::new(Endpoint {
         system_id,
+        ground,
         boot: Instant::now(),
         conn,
         state: Mutex::new(State {
-            drone: Drone::on_floor(),
+            drone,
             mode: Mode::Manual,
             setpoint: None,
             disarm_at: None,

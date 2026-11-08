@@ -1,4 +1,5 @@
-//! Tier A Drone model: a kinematic quadrotor in north-east-down metres, floor at z = 0.
+//! Tier A Drone model: a kinematic quadrotor in north-east-down metres. The ground under it
+//! (floor at d = 0, a table top above that) is an input: see `Drone::set_ground`.
 //! Pure computation with time passed in as `dt`, so it also builds for WebAssembly.
 
 /// Tier A values; Tier B uses a published airframe spec.
@@ -14,7 +15,7 @@ const GRAVITY: f64 = 9.80665;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Drone {
-    /// North, east, down in metres. z = 0 is the floor; z > 0 never happens.
+    /// North, east, down in metres. Never below the ground under it (position[2] <= ground).
     pub position: [f64; 3],
     /// North, east, down in metres per second.
     pub velocity: [f64; 3],
@@ -23,8 +24,10 @@ pub struct Drone {
     pub pitch: f64,
     pub yaw: f64,
     pub armed: bool,
-    /// True while the Drone sits on the floor.
+    /// True while the Drone sits on the ground.
     pub landed: bool,
+    /// NED d of the surface under the Drone (−height); 0 is the floor, a table top is negative.
+    pub ground: f64,
 }
 
 impl Drone {
@@ -38,7 +41,13 @@ impl Drone {
             yaw: 0.0,
             armed: false,
             landed: true,
+            ground: 0.0,
         }
+    }
+
+    /// Tells the model the ground height under the Drone; call before each step. d_ground = −height.
+    pub fn set_ground(&mut self, d_ground: f64) {
+        self.ground = d_ground;
     }
 
     pub fn arm(&mut self) {
@@ -58,8 +67,8 @@ impl Drone {
         if !self.armed {
             return;
         }
-        // A target below the floor is clamped onto the floor.
-        let tz = target[2].min(0.0);
+        // A target below the ground is clamped onto the ground.
+        let tz = target[2].min(self.ground);
         let (ex, ey) = (target[0] - self.position[0], target[1] - self.position[1]);
         let dist = ex.hypot(ey);
         let speed = MAX_HORIZONTAL_SPEED.min((2.0 * MAX_ACCELERATION * dist).sqrt());
@@ -76,7 +85,7 @@ impl Drone {
         self.integrate(dt, accel_h);
     }
 
-    /// Descends straight down at LAND_SPEED, holding x and y, until it touches the floor.
+    /// Descends straight down at LAND_SPEED, holding x and y, until it touches the ground.
     pub fn land_step(&mut self, dt: f64) {
         if !self.armed || self.landed {
             return;
@@ -107,13 +116,13 @@ impl Drone {
         self.velocity[2] += (want - self.velocity[2]).clamp(-max_dv, max_dv);
     }
 
-    /// Moves by the velocity, stops on the floor, and sets the tilt from the horizontal acceleration.
+    /// Moves by the velocity, stops on the ground, and sets the tilt from the horizontal acceleration.
     fn integrate(&mut self, dt: f64, accel_h: [f64; 2]) {
         for axis in 0..3 {
             self.position[axis] += self.velocity[axis] * dt;
         }
-        if self.position[2] >= 0.0 {
-            self.position[2] = 0.0;
+        if self.position[2] >= self.ground {
+            self.position[2] = self.ground;
             self.velocity[2] = self.velocity[2].min(0.0);
             self.landed = true;
         } else {
@@ -225,5 +234,81 @@ mod tests {
         }
         assert_eq!(drone.position[2], 0.0);
         assert_eq!(drone.velocity, [0.0; 3]);
+    }
+
+    #[test]
+    fn rests_at_table_height() {
+        let mut drone = Drone::on_floor();
+        drone.position[2] = -0.75;
+        drone.arm();
+        for _ in 0..500 {
+            drone.set_ground(-0.75);
+            drone.step(DT, [0.0, 0.0, -0.75]);
+        }
+        assert_eq!(drone.position[2], -0.75);
+        assert!(drone.landed);
+    }
+
+    #[test]
+    fn lands_on_the_table() {
+        let mut drone = Drone::on_floor();
+        drone.position[2] = -0.75;
+        drone.arm();
+        for _ in 0..1250 {
+            drone.set_ground(-0.75);
+            drone.step(DT, [0.0, 0.0, -1.75]);
+        }
+        assert!(drone.position[2] < -1.5, "did not climb: {}", drone.position[2]);
+        let mut steps = 0;
+        while !drone.landed {
+            drone.set_ground(-0.75);
+            drone.land_step(DT);
+            steps += 1;
+            assert!(steps < 5000, "never touched down");
+        }
+        assert_eq!(drone.position[2], -0.75);
+        assert_eq!(drone.velocity, [0.0; 3]);
+    }
+
+    #[test]
+    fn never_below_ground_while_descending_fast() {
+        let mut drone = Drone::on_floor();
+        drone.position[2] = -2.0;
+        drone.velocity[2] = MAX_VERTICAL_SPEED;
+        drone.landed = false;
+        drone.arm();
+        for _ in 0..1500 {
+            drone.set_ground(-0.75);
+            drone.step(DT, [0.0, 0.0, 5.0]);
+            assert!(drone.position[2] <= -0.75 + 1e-12, "below ground: {}", drone.position[2]);
+        }
+        assert_eq!(drone.position[2], -0.75);
+    }
+
+    #[test]
+    fn flies_from_table_to_floor_and_lands() {
+        let table_edge = 0.5;
+        let mut drone = Drone::on_floor();
+        drone.position[2] = -0.75;
+        drone.arm();
+        let ground_at = |n: f64| if n < table_edge { -0.75 } else { 0.0 };
+        for _ in 0..1000 {
+            drone.set_ground(ground_at(drone.position[0]));
+            drone.step(DT, [0.0, 0.0, -1.5]);
+        }
+        for _ in 0..2000 {
+            drone.set_ground(ground_at(drone.position[0]));
+            drone.step(DT, [1.0, 0.0, -1.5]);
+            assert!(drone.position[2] <= drone.ground + 1e-12);
+        }
+        assert!(drone.position[0] > 0.95 && drone.position[2] < -1.4, "{:?}", drone.position);
+        let mut steps = 0;
+        while !drone.landed {
+            drone.set_ground(ground_at(drone.position[0]));
+            drone.land_step(DT);
+            steps += 1;
+            assert!(steps < 10000, "never touched down");
+        }
+        assert_eq!(drone.position[2], 0.0);
     }
 }

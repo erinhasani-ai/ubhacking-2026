@@ -116,7 +116,19 @@ A ticket is not done until every one of its gates shows passing evidence here.
 - [x] T8a.G2: The workspace and the WebAssembly crate build with the new dependencies
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo build --workspace && PATH="$HOME/.cargo/bin:$PATH" cargo build -p aether-wasm --target wasm32-unknown-unknown && echo "build"_ok
   EXPECT: build_ok
-  EVIDENCE: automatic-evidence=v1; definition-sha256=265ddc570007970cd30af7a31f591985c85c3c469b7cf46e67a4a783d735b3c5; exit=0; EXPECT=matched; output-sha256=20b3aa0ac9eeb0a8a3a622b760ab7ef03ea3b16f7eb3bd64a02fd9e3711cfcc5; output-bytes=584; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=d082171f4bb6/24 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=265ddc570007970cd30af7a31f591985c85c3c469b7cf46e67a4a783d735b3c5; exit=0; EXPECT=matched; output-sha256=f79d7c9d2655adda1b2e7aeb2ff4e62ce74e50bdd9b02ee0e22d5682278b05dc; output-bytes=154; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
+
+## T9 — Swarm of six Drones
+
+- [x] T9.G1: The Drone model takes the ground height under it: it rests and lands on a table top or the floor and never goes below what is under it
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core vehicle::
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=265b97054f5b59c9d50983b25a30aa7127001ef3d89c9254d6d6676914b8a9e5; exit=0; EXPECT=matched; output-sha256=2cd97328f5c49c2f14ce9d039283ed590e445e5e4f22c4183f638c3cc6c1afa9; output-bytes=952; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t9-swarm; path=441ef2ff855b/30 entries
+
+- [x] T9.G2: pymavlink sees MAVLink v2 heartbeats from systems 1–6 of one sim_swarm process, each with attitude at least 45 Hz and position at least 25 Hz
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" .venv/bin/python tests/swarm_heartbeats.py
+  EXPECT: /swarm_ok systems=6 min_att_hz=(4[5-9]|[5-9]\d) min_pos_hz=(2[5-9]|[3-9]\d)/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=60aa60629d470173e084d2b2fca997b838d7fd8648230258634b05b363787391; exit=0; EXPECT=matched; output-sha256=10f95689d8e668866caa99d3999430778af192583f78e9c0847715b2a51c6bac; output-bytes=47; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t9-swarm; path=d082171f4bb6/24 entries
 
 ## T4 — Voice spike
 
@@ -139,7 +151,19 @@ A ticket is not done until every one of its gates shows passing evidence here.
 - [ ] T5.G2: The probe streams at least 100 samples from the live phone over 5 s with one session, and reports sample rate and median round-trip time
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_phyphox
   EXPECT: /phyphox_ok samples=([1-9]\d{2,}) rate_hz=\d+ rtt_ms=\d+/
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=7f246074f1cdce59dc270d0678565143569403c156bd4638e93dfdba6a77cfa2; exit=0; EXPECT=matched; output-sha256=e6f9751a099086f26f2634b3a89f9fdcc501e34d8d1c33a2e1b9f89e40eda451; output-bytes=44; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t5-phyphox; path=441ef2ff855b/30 entries
+
+## T12 — Ground station
+
+- [x] T12.G1: The ground station tracks each Drone by system id (latest Telemetry, mode, armed, link age) and matches each COMMAND_ACK to the command it answers, on known messages
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-engine gcs::
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=49ef8f2dd73c60fb542a3d01fe709d16c70955a3a12a7c7597a140855d4216de; exit=0; EXPECT=matched; output-sha256=7e5bdc6b2bbbc6f6144f74834650214a52eac63612a534e69eece4469b5ba07a; output-bytes=2539; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t12-gcs; path=d082171f4bb6/24 entries
+
+- [x] T12.G2: Against one sim_swarm process, the ground station arms all six Drones, climbs them to 1 m, holds, and lands them; all six end disarmed on the ground
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-engine --test gcs_swarm
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=370ccab949b06ab750da1c4bed85c2218e782c72285051fc301b82611cbc10f8; exit=0; EXPECT=matched; output-sha256=7ffd3200ab7a41dec434d09a38a6790cda82f95116f418517d2e0fcce9f1cd86; output-bytes=320; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t12-gcs; path=d082171f4bb6/24 entries
 
 ## T20 — Put-That-There (ray history)
 
