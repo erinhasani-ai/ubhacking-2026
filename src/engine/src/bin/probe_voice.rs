@@ -1,5 +1,4 @@
 //! T4 probe: ElevenLabs speaks a sentence, Scribe v2 Realtime hears it back after a manual commit.
-//! Set VOICE_DUMP=1 to print raw server replies to stderr (used to capture test fixtures).
 
 use std::process::ExitCode;
 use std::time::{Duration, Instant};
@@ -11,7 +10,6 @@ const SENTENCE: &str = "Aether, send two drones to the door.";
 #[tokio::main]
 async fn main() -> anyhow::Result<ExitCode> {
     dotenvy::dotenv().ok();
-    let dump = std::env::var("VOICE_DUMP").is_ok();
 
     let t = Instant::now();
     let speech = speak(SENTENCE).await?;
@@ -30,10 +28,7 @@ async fn main() -> anyhow::Result<ExitCode> {
 
     let mut result = None;
     let deadline = Duration::from_secs(20);
-    while let Ok(Ok(Some((raw, ev)))) = tokio::time::timeout(deadline, scribe.next_event()).await {
-        if dump {
-            eprintln!("RAW {raw}");
-        }
+    while let Ok(Ok(Some((_, ev)))) = tokio::time::timeout(deadline, scribe.next_event()).await {
         match ev {
             ScribeEvent::Committed { text, words } if !words.is_empty() => {
                 result = Some((commit_at.elapsed().as_millis(), text, words));
