@@ -10,6 +10,10 @@ Aether is a rescue swarm commanded by voice, by pointing, and by hand signals, f
 The 3D map of a real room, built from a LiDAR scan of that room.
 _Avoid_: room copy, map, scene, model
 
+**Place**:
+A named spot in the Room Twin, such as the door or the table, that a Command can send Drones to. Each one is read off the scan and confirmed by hand.
+_Avoid_: landmark (that word belongs to hand tracking), waypoint, location, POI
+
 ### The swarm
 
 **Drone**:
