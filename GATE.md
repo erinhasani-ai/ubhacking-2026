@@ -120,15 +120,15 @@ A ticket is not done until every one of its gates shows passing evidence here.
 
 ## T8 — Mission frame and Launch pad
 
-- [ ] T8.G1: The Mission frame matches known answers: scan to Mission and back is exact, N × E = D (right-handed), the Launch pad centre maps to (0, 0, 0), and the six slots are 0.6 m apart
+- [x] T8.G1: The Mission frame matches known answers: scan to Mission and back is exact, N × E = D (right-handed), the Launch pad centre maps to (0, 0, 0), and the six slots are 0.6 m apart
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core frame::
   EXPECT: /test result: ok\. [1-9]\d* passed/
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=c8dcd8baed672f83c4bc50e33d924cf10267b96439066147e5762b52f231adee; exit=0; EXPECT=matched; output-sha256=100b82ae8f04f5762ebaa97b142920c91ecd07929f2a3b024a81ed99820b007c; output-bytes=472; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t8-frame; path=d082171f4bb6/24 entries
 
-- [ ] T8.G2: On the real scan, the Launch pad sits on a clear floor patch level within ±60 mm, with free space around and above each of six pad slots 0.6 m apart
+- [x] T8.G2: On the real scan, the Launch pad sits on a clear floor patch level within ±60 mm, with free space around and above each of six pad slots 0.6 m apart
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_pad
   EXPECT: /pad_ok floor_level_mm=([0-9]|[1-5][0-9]|60) slots_free=6 clear_m=\d+\.\d+/
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=372d03bf6e0f128f0bfb26fa94a0124d777f4b2ec67fa35a1591c8b3128d70b7; exit=0; EXPECT=matched; output-sha256=8be615484c7907799592e85fe427d5b73632023af31b9f48d52761a89e78d47d; output-bytes=51; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t8-frame; path=d082171f4bb6/24 entries
 
 ## T5 — phyphox spike
 
