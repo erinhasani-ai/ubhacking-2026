@@ -4,6 +4,18 @@ Format: unlazy (`.claude/skills/unlazy/references/gates.md`). One `## Tn` sectio
 Run from the repo root: `node .claude/skills/unlazy/scripts/gate-check.mjs GATE.md`. First time on a machine: `--status` to read the commands, then `--approve`.
 A ticket is not done until every one of its gates shows passing evidence here.
 
+## T9b — Ground from the Room Twin
+
+- [x] T9b.G1: On a synthetic Room Twin, Drones land on the table or fly off it and land on the floor; the ceiling is ignored, floor drift uses the pad plane, and unknown columns use the floor
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-engine --lib mavlink_link::tests::room_ground
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=fb427a8ef8dbf8550caeb65d1dc596aaa2397798d30f6d90215dd66e3164f27a; exit=0; EXPECT=matched; output-sha256=4c26028fac49824c9d2d32e28d0c099b8da1d0798c63cc54e6d16cd987290b21; output-bytes=635; shell=/bin/sh; cwd=~/Documents/UBHacking2026; path=d0822520b261/32 entries
+
+- [x] T9b.G2: sim_swarm uses the six shared pad slots and rejects invalid counts, invalid ports and conflicting ground options
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-engine --bin sim_swarm
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=82abc2e7a441a5b7519055684f1e96df409c0cb22ec790d9a115e4e1656f20cc; exit=0; EXPECT=matched; output-sha256=21c0428a038f5dfea0ed39b6363bbb00c1c50baa44230e053a3d616b073af57c; output-bytes=537; shell=/bin/sh; cwd=~/Documents/UBHacking2026; path=d0822520b261/32 entries
+
 ## T0 — Project setup
 
 - [x] T0.G1: Committed history contains no secrets
