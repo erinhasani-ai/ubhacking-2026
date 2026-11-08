@@ -147,6 +147,18 @@ A ticket is not done until every one of its gates shows passing evidence here.
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core orca::
   EXPECT: /test result: ok\. [1-9]\d* passed/
   EVIDENCE: automatic-evidence=v1; definition-sha256=707f31cfbbde16b2bf0e364825f74e5d64764805f4b559545f3cac29b844e579; exit=0; EXPECT=matched; output-sha256=36b690961804db377665b730f85a5c772fe4c98818599e97ea8097f750edd1f4; output-bytes=893; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t11-orca; path=441ef2ff855b/30 entries
+## T8 — Mission frame and Launch pad
+
+- [x] T8.G1: The Mission frame matches known answers: scan to Mission and back is exact, N × E = D (right-handed), the Launch pad centre maps to (0, 0, 0), and the six slots are 0.6 m apart
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core frame::
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=c8dcd8baed672f83c4bc50e33d924cf10267b96439066147e5762b52f231adee; exit=0; EXPECT=matched; output-sha256=100b82ae8f04f5762ebaa97b142920c91ecd07929f2a3b024a81ed99820b007c; output-bytes=472; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t8-frame; path=d082171f4bb6/24 entries
+
+- [x] T8.G2: On the real scan, the Launch pad sits on a clear floor patch level within ±60 mm, with free space around and above each of six pad slots 0.6 m apart
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_pad
+  EXPECT: /pad_ok floor_level_mm=([0-9]|[1-5][0-9]|60) slots_free=6 clear_m=\d+\.\d+/
+  EVIDENCE: automatic-evidence=v1; definition-sha256=372d03bf6e0f128f0bfb26fa94a0124d777f4b2ec67fa35a1591c8b3128d70b7; exit=0; EXPECT=matched; output-sha256=8be615484c7907799592e85fe427d5b73632023af31b9f48d52761a89e78d47d; output-bytes=51; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t8-frame; path=d082171f4bb6/24 entries
+
 ## T5 — phyphox spike
 
 - [x] T5.G1: The phyphox reply parser, on fixture replies, keeps only new samples and notices a changed session
