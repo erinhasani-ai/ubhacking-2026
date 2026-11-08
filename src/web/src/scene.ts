@@ -24,9 +24,11 @@ import {
   SpriteMaterial,
   Vector2,
   Vector3,
+  Vector4,
   WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { buildPlan } from './plan';
 import type { Hello, State } from './stream';
 
 const INK = '#ece7df';
@@ -37,7 +39,7 @@ const STALE_OPACITY = 0.4;
 const GROUND = '#070d14';
 
 /** Height above the floor above which the scan's ceiling is cut away, like a plan section. */
-export const CEILING_CUT_M = 2.7;
+export const CEILING_CUT_M = 2.35; // Davis third-floor corridors: ceiling about 2.7 m above the floor
 const POINT_SIZE_M = 0.048;
 const RENDER_DELAY_MS = 50; // render this far behind the newest state frame, so there is a frame to interpolate toward
 const MAX_EXTRAPOLATE_MS = 100;
@@ -191,6 +193,7 @@ const pointsMaterial = () =>
       uHigh: { value: new Color('#62caff') },
       uGround: { value: new Color(GROUND) },
       uFog: { value: new Vector2(8, 30) },
+      uOpacity: { value: 1 },
     },
     vertexShader: /* glsl */ `
       uniform float uSize;
@@ -212,13 +215,106 @@ const pointsMaterial = () =>
         vColor = mix(c, uGround, 0.6 * smoothstep(uFog.x, uFog.y, dist));
       }`,
     fragmentShader: /* glsl */ `
+      uniform float uOpacity;
       varying vec3 vColor;
       void main() {
         vec2 p = gl_PointCoord * 2.0 - 1.0;
         float r2 = dot(p, p);
         if (r2 > 1.0) discard;
         float glow = exp(-3.5 * r2) * (1.0 - smoothstep(0.7, 1.0, r2));
-        gl_FragColor = vec4(vColor, 0.38 * glow);
+        gl_FragColor = vec4(vColor, 0.38 * glow * uOpacity);
+        #include <colorspace_fragment>
+      }`,
+  });
+
+// Hologram layer (plan.ts): flat glass walls brightening toward a crisp top edge, a flat floor with a 1 m light grid,
+// and a slow scan sweep. Additive with depth writes off, so the points and Drones always read through it.
+const sweepGlsl = /* glsl */ `
+  uniform float uTime;
+  uniform vec2 uSweep;
+  uniform float uMotion;
+  float sweep(float z) {
+    float span = uSweep.y - uSweep.x;
+    float at = uSweep.x + mod(uTime * 5.0, span + 10.0) - 5.0;
+    return uMotion * exp(-pow((z - at) / 0.8, 2.0));
+  }`;
+const holoUniforms = () => ({
+  uTime: { value: 0 },
+  uSweep: { value: new Vector2(-30, 30) },
+  uMotion: { value: 1 },
+  uFog: { value: new Vector2(8, 30) },
+  uLow: { value: new Color('#0a4bd6') },
+  uHigh: { value: new Color('#59e1ff') },
+});
+const wallMaterial = (u: ReturnType<typeof holoUniforms>) =>
+  new ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: AdditiveBlending,
+    side: DoubleSide,
+    uniforms: u,
+    vertexShader: /* glsl */ `
+      attribute float aH;
+      varying float vH;
+      varying float vZ;
+      varying float vDist;
+      void main() {
+        vH = aH;
+        vZ = position.z;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vDist = -mv.z;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: /* glsl */ `
+      ${sweepGlsl}
+      uniform vec2 uFog;
+      uniform vec3 uLow;
+      uniform vec3 uHigh;
+      varying float vH;
+      varying float vZ;
+      varying float vDist;
+      void main() {
+        float b = sweep(vZ);
+        float a = 0.05 + 0.32 * pow(vH, 3.0) + 0.3 * b;
+        a *= 1.0 - 0.7 * smoothstep(uFog.x, uFog.y, vDist);
+        gl_FragColor = vec4(mix(uLow, uHigh, vH) + b * vec3(0.3, 0.5, 0.5), a);
+        #include <colorspace_fragment>
+      }`,
+  });
+const floorMaterial = (u: ReturnType<typeof holoUniforms>, mask: CanvasTexture, rect: Vector4) =>
+  new ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: AdditiveBlending,
+    uniforms: { ...u, uMask: { value: mask }, uRect: { value: rect } },
+    vertexShader: /* glsl */ `
+      varying vec3 vPos;
+      varying float vDist;
+      void main() {
+        vPos = position;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vDist = -mv.z;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: /* glsl */ `
+      ${sweepGlsl}
+      uniform vec2 uFog;
+      uniform vec3 uLow;
+      uniform vec3 uHigh;
+      uniform sampler2D uMask;
+      uniform vec4 uRect;
+      varying vec3 vPos;
+      varying float vDist;
+      void main() {
+        vec2 uv = (vPos.xz - uRect.xy) / uRect.zw;
+        float m = smoothstep(0.42, 0.58, texture2D(uMask, uv).r);
+        if (m < 0.01) discard;
+        vec2 g = abs(fract(vPos.xz - 0.5) - 0.5) / max(fwidth(vPos.xz), vec2(1e-4));
+        float grid = 1.0 - min(min(g.x, g.y), 1.0);
+        float b = sweep(vPos.z);
+        float a = m * (0.06 + 0.2 * grid + 0.25 * b);
+        a *= 1.0 - 0.7 * smoothstep(uFog.x, uFog.y, vDist);
+        gl_FragColor = vec4(mix(uLow, uHigh, 0.35 + 0.5 * grid) + b * vec3(0.3, 0.5, 0.5), a);
         #include <colorspace_fragment>
       }`,
   });
@@ -304,8 +400,11 @@ export function createScene(canvas: HTMLCanvasElement, on: SceneHandlers, reduce
   controls.dampingFactor = 0.12;
   controls.maxPolarAngle = Math.PI * 0.48; // never below the floor
   controls.minDistance = 1.5;
-  controls.maxDistance = 45;
+  controls.maxDistance = 140; // a whole 60 m floor fits
   controls.screenSpacePanning = false; // pan along the floor
+  controls.zoomToCursor = true; // scroll toward what is under the pointer, to explore a large floor
+  controls.keyPanSpeed = 14;
+  controls.listenToKeyEvents(window); // arrow keys pan; shift + arrows orbit
 
   // Point cloud.
   const pointsGeom = new BufferGeometry();
@@ -313,6 +412,13 @@ export function createScene(canvas: HTMLCanvasElement, on: SceneHandlers, reduce
   const cloud = new Points(pointsGeom, pointsMat);
   cloud.frustumCulled = false;
   scene.add(cloud);
+
+  // Hologram layer (from /api/mesh through plan.ts), drawn under the points.
+  const holoU = holoUniforms();
+  const holo = new Group();
+  holo.visible = false;
+  scene.add(holo);
+  let holoOn = true;
 
   // Launch pad slots: thin rings on the floor.
   const padLines = new LineSegments(new BufferGeometry(), new LineBasicMaterial({ color: '#8a847b', transparent: true, opacity: 0.7 }));
@@ -428,6 +534,7 @@ export function createScene(canvas: HTMLCanvasElement, on: SceneHandlers, reduce
   }
   // Until the operator moves the camera, keep the room framed as the window or the HUD changes size.
   let framed: { min: number[]; max: number[] } | null = null;
+  let home: { target: Vector3; position: Vector3 } | null = null;
   let userMoved = false;
   controls.addEventListener('start', () => (userMoved = true));
   const onResize = () => {
@@ -477,7 +584,7 @@ export function createScene(canvas: HTMLCanvasElement, on: SceneHandlers, reduce
       }
       return true;
     };
-    let lo = 1, hi = 80;
+    let lo = 1, hi = 160;
     for (let i = 0; i < 24; i++) {
       const mid = (lo + hi) / 2;
       camera.position.copy(controls.target).addScaledVector(tmp2, mid);
@@ -488,6 +595,8 @@ export function createScene(canvas: HTMLCanvasElement, on: SceneHandlers, reduce
     camera.position.copy(controls.target).addScaledVector(tmp2, hi);
     pointsMat.uniforms.uHeight.value = Math.max(1, CEILING_CUT_M);
     pointsMat.uniforms.uFog.value.set(hi * 0.8, hi * 2.4);
+    holoU.uFog.value.set(hi * 0.8, hi * 2.4);
+    home = { target: controls.target.clone(), position: camera.position.clone() };
     controls.update();
   }
 
@@ -688,6 +797,8 @@ export function createScene(canvas: HTMLCanvasElement, on: SceneHandlers, reduce
       else if (f > 0) marker.material.opacity = 1 - f;
     }
 
+    holoU.uTime.value = now / 1000;
+    holoU.uMotion.value = reducedMotion() ? 0 : 1;
     controls.enableDamping = !reducedMotion();
     controls.dampingFactor = 1 - Math.pow(1 - 0.12, dt * 60); // OrbitControls damps per frame; this keeps the glide the same at 30 or 60 fps
     controls.update();
@@ -715,6 +826,56 @@ export function createScene(canvas: HTMLCanvasElement, on: SceneHandlers, reduce
       padBox = { n0: Math.min(...ns) - 0.3, n1: Math.max(...ns) + 0.3, e0: Math.min(...es) - 0.3, e1: Math.max(...es) + 0.3, d: Math.max(...h.pad.map((p) => p[2])) };
       if (!helloSeen) frameRoom(h.room.min, h.room.max); // only the first hello of a page load: a reconnect keeps the operator's view
       helloSeen = true;
+    },
+    /** The scanned surface for the holographic layer: the /api/mesh body (counts, n,e,d f32 per vertex, u32 indices). */
+    setMesh(buf: ArrayBuffer) {
+      const head = new Uint32Array(buf, 0, 2);
+      const ned = new Float32Array(buf, 8, head[0] * 3);
+      const index = new Uint32Array(buf, 8 + head[0] * 12, head[1] * 3);
+      const pos = new Float32Array(head[0] * 3);
+      for (let i = 0; i < head[0]; i++) {
+        pos[3 * i] = ned[3 * i + 1];
+        pos[3 * i + 1] = -ned[3 * i + 2];
+        pos[3 * i + 2] = -ned[3 * i];
+      }
+      const plan = buildPlan(pos, index, CEILING_CUT_M - 0.05);
+      for (const o of [...holo.children]) {
+        holo.remove(o);
+        (o as Mesh).geometry.dispose();
+      }
+      const wallGeom = new BufferGeometry();
+      wallGeom.setAttribute('position', new BufferAttribute(plan.walls, 3));
+      wallGeom.setAttribute('aH', new BufferAttribute(plan.wallHeight, 1));
+      const walls = new Mesh(wallGeom, wallMaterial(holoU));
+      const edgeGeom = new BufferGeometry();
+      edgeGeom.setAttribute('position', new BufferAttribute(plan.edges, 3));
+      const edges = new LineSegments(edgeGeom, new LineBasicMaterial({ color: '#8eeaff', transparent: true, opacity: 0.9, blending: AdditiveBlending, depthWrite: false }));
+      const f = plan.floor;
+      const mask = new CanvasTexture(f.canvas);
+      mask.flipY = false;
+      const floorGeom = new PlaneGeometry(f.w, f.h).rotateX(-Math.PI / 2).translate(f.x0 + f.w / 2, 0.005, f.z0 + f.h / 2);
+      const floorMesh = new Mesh(floorGeom, floorMaterial(holoU, mask, new Vector4(f.x0, f.z0, f.w, f.h)));
+      for (const o of [floorMesh, walls, edges]) {
+        o.frustumCulled = false;
+        o.renderOrder = -1;
+        holo.add(o);
+      }
+      holoU.uSweep.value.set(f.z0, f.z0 + f.h);
+      holo.visible = holoOn;
+      pointsMat.uniforms.uOpacity.value = holoOn ? 0.6 : 1;
+      return { walls: plan.walls.length / 18 };
+    },
+    setHolo(on: boolean) {
+      holoOn = on;
+      holo.visible = on && holo.children.length > 0;
+      pointsMat.uniforms.uOpacity.value = holo.visible ? 0.6 : 1;
+    },
+    /** Back to the framed overview of the whole scan. */
+    resetView() {
+      if (!home) return;
+      controls.target.copy(home.target);
+      camera.position.copy(home.position);
+      controls.update();
     },
     /** Builds the cloud from (n, e, d) triples; the ceiling above CEILING_CUT_M is left out of the draw range. */
     setPoints(ned: Float32Array) {

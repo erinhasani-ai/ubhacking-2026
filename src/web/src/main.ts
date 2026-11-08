@@ -78,6 +78,7 @@ const scene = createScene(
 );
 
 let scanJob = 0;
+let meshRequested = false;
 let originalScan: Float32Array | null = null;
 const enhancement = new Worker(new URL('./enhance-cloud.worker.js', import.meta.url), { type: 'module' });
 enhancement.onmessage = ({ data }) => {
@@ -97,6 +98,19 @@ const stream = connect(url, {
   hello(h) {
     scanJob++;
     scene.setRoom(h);
+    hud.places = h.places.map((p) => p.name);
+    if (!meshRequested) {
+      meshRequested = true;
+      // The holographic layer is optional: without it the point cloud alone is the map.
+      fetch('/api/mesh')
+        .then((r) => (r.ok ? r.arrayBuffer() : null))
+        .then((b) => {
+          if (!b) return;
+          scene.setMesh(b);
+          scene.setHolo(hud.holo);
+        })
+        .catch((e) => console.warn('No holographic layer:', e));
+    }
     hud.room = {
       provenance: h.room.provenance,
       size: [h.room.max[1] - h.room.min[1], h.room.max[0] - h.room.min[0], h.room.max[2] - h.room.min[2]],
@@ -186,6 +200,18 @@ const actions = {
     scene.setFollow(hud.follow);
   },
   retryNow: () => stream.retryNow(),
+  toggleHolo() {
+    hud.holo = !hud.holo;
+    scene.setHolo(hud.holo);
+  },
+  resetView() {
+    if (hud.follow) actions.toggleFollow();
+    scene.resetView();
+  },
+  sendPlace(place: string) {
+    const drones = hud.selected.length ? { ids: [...hud.selected].sort((a, b) => a - b) } : 'all';
+    sendCommand('click', { kind: 'dispatch', drones, target: { place } });
+  },
 };
 
 addEventListener('keydown', (e) => {
@@ -193,6 +219,8 @@ addEventListener('keydown', (e) => {
   if (e.key === 'Escape') actions.abort('key');
   else if (e.key === 'r' || e.key === 'R') actions.reset();
   else if (e.key === 'f' || e.key === 'F') actions.toggleFollow();
+  else if (e.key === 'h' || e.key === 'H') actions.toggleHolo();
+  else if (e.key === 'v' || e.key === 'V') actions.resetView();
   else return;
   e.preventDefault();
 });

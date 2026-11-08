@@ -8,6 +8,9 @@ use anyhow::{bail, Context, Result};
 use serde_json::json;
 use tokio::net::TcpListener;
 
+/// Planning voxel. 0.2 m keeps A* on a 60 m floor scan to about a second; clearance stays 0.35 m.
+const VOXEL_M: f64 = 0.2;
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let (mut port, mut gcs_port) = (7700u16, 14550u16);
@@ -28,7 +31,7 @@ async fn main() -> Result<()> {
         .or_else(|| exe_dir.as_ref().map(|d| d.join("room.obj")).filter(|p| p.exists()).map(|p| p.display().to_string()))
         .context("ROOM_SCAN_PATH is not set and there is no room.obj next to aether")?;
     let mesh = load_obj(&std::fs::read(scan).context("reading the Room Twin")?)?;
-    let grid = Arc::new(OccupancyGrid::from_mesh(&mesh, 0.1).map_err(anyhow::Error::msg)?);
+    let grid = Arc::new(OccupancyGrid::from_mesh(&mesh, VOXEL_M).map_err(anyhow::Error::msg)?);
     eprintln!("aether: scan loaded; preparing distance field");
     let field = Arc::new(DistanceField::from_grid(&grid));
     let mut min = [f64::INFINITY; 3];
@@ -40,6 +43,12 @@ async fn main() -> Result<()> {
     let stride = mesh.vertices.len().div_ceil(200_000).max(1);
     let cloud = mesh.vertices.iter().step_by(stride)
         .flat_map(|&p| frame::scan_to_mission(p).map(|v| v as f32)).collect();
+    // The holographic layer: the whole scanned surface in the Mission frame, served once at /api/mesh.
+    let mut mesh_bytes = Vec::with_capacity(8 + mesh.vertices.len() * 12 + mesh.triangles.len() * 12);
+    mesh_bytes.extend((mesh.vertices.len() as u32).to_le_bytes());
+    mesh_bytes.extend((mesh.triangles.len() as u32).to_le_bytes());
+    for &p in &mesh.vertices { for v in frame::scan_to_mission(p) { mesh_bytes.extend((v as f32).to_le_bytes()); } }
+    for t in &mesh.triangles { for i in t { mesh_bytes.extend(i.to_le_bytes()); } }
     let pad: Vec<_> = (0..6).map(frame::pad_slot).collect();
     let named: Vec<_> = places::all().iter().map(|p| {
         let [n, e, d] = frame::scan_to_mission([p.x, p.y, p.z]);
@@ -75,7 +84,7 @@ async fn main() -> Result<()> {
     println!("aether_ready url=http://{address} drones=6 provenance=SIM");
     tokio::select! {
         _ = server::serve(listener, server::Config {
-            hello, cloud, gcs, inbox: mission.inbox, verdicts: mission.verdicts, resets: mission.resets, static_dir: Some(static_dir),
+            hello, cloud, mesh: mesh_bytes, gcs, inbox: mission.inbox, verdicts: mission.verdicts, resets: mission.resets, static_dir: Some(static_dir),
         }) => {},
         _ = tokio::signal::ctrl_c() => {},
     }

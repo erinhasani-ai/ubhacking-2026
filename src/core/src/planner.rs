@@ -2,7 +2,7 @@
 //! WebAssembly-safe: no file access, no threads.
 
 use std::cmp::Ordering;
-use std::collections::BinaryHeap;
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 use crate::room_twin::OccupancyGrid;
 
@@ -248,44 +248,45 @@ fn search(field: &DistanceField, free: &[bool], start: [usize; 3], goal: [usize;
     }
 
     let h = |c: [usize; 3]| (0..3).map(|a| (c[a] as f64 - goal[a] as f64).powi(2)).sum::<f64>().sqrt();
-    let mut cost = vec![f64::INFINITY; free.len()];
-    let mut parent = vec![usize::MAX; free.len()];
-    let mut closed = vec![false; free.len()];
+    // Sparse bookkeeping: a search touches a corridor's worth of cells, not the whole grid (17 M cells on a 60 m floor).
+    let mut cost: HashMap<usize, f64> = HashMap::new();
+    let mut parent: HashMap<usize, usize> = HashMap::new();
+    let mut closed: HashSet<usize> = HashSet::new();
     let mut open = BinaryHeap::new();
     let (s, g) = (field.flat(start), field.flat(goal));
-    cost[s] = 0.0;
+    cost.insert(s, 0.0);
     open.push(Open { f: h(start), cell: s });
     while let Some(Open { cell, .. }) = open.pop() {
-        if closed[cell] {
+        if !closed.insert(cell) {
             continue;
         }
         if cell == g {
             let mut path = vec![goal];
             let mut at = g;
             while at != s {
-                at = parent[at];
+                at = parent[&at];
                 path.push(field.unflat(at));
             }
             path.reverse();
             return Some(path);
         }
-        closed[cell] = true;
         let c = field.unflat(cell);
+        let here = cost[&cell];
         for step in &steps {
             if (0..3).any(|a| (c[a] == 0 && step.d[a] < 0) || (c[a] + 1 == dims[a] && step.d[a] > 0)) {
                 continue;
             }
             let next = (cell as isize + step.to) as usize;
-            if closed[next] || !free[next] {
+            if !free[next] || closed.contains(&next) {
                 continue;
             }
             if !step.corners[..step.corner_count].iter().all(|&o| free[(cell as isize + o) as usize]) {
                 continue;
             }
-            let through = cost[cell] + step.len;
-            if through < cost[next] {
-                cost[next] = through;
-                parent[next] = cell;
+            let through = here + step.len;
+            if through < cost.get(&next).copied().unwrap_or(f64::INFINITY) {
+                cost.insert(next, through);
+                parent.insert(next, cell);
                 open.push(Open { f: through + h(field.unflat(next)), cell: next });
             }
         }

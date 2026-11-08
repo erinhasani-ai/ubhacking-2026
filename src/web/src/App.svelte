@@ -7,6 +7,9 @@
     abort(source: 'click' | 'key'): void;
     toggleFollow(): void;
     retryNow(): void;
+    toggleHolo(): void;
+    resetView(): void;
+    sendPlace(place: string): void;
   }
   let { actions }: { actions: Actions } = $props();
 
@@ -39,7 +42,7 @@
   {#if hud.room}
     <p class="room">
       <span class="tag" data-provenance={hud.room.provenance}>{hud.room.provenance}</span>
-      <span>Test-room scan</span>
+      <span>Davis Hall, 3rd floor</span>
       <span class="data">{fmt(hud.room.size[0])} × {fmt(hud.room.size[1])} × {fmt(hud.room.size[2])} m</span>
       {#if hud.room.points}
         <span class="sep" aria-hidden="true">·</span>
@@ -92,6 +95,18 @@
       <p class="selection">Camera follows {hud.selected.length ? 'the selected Drones' : 'the Swarm centre'}</p>
     {/if}
   </section>
+
+  {#if hud.places.length}
+    <section class="panel places" aria-labelledby="places-title">
+      <h2 id="places-title">Send to a Place</h2>
+      <div class="chips">
+        {#each hud.places as p (p)}
+          <button class="key chip" onclick={() => actions.sendPlace(p)}>{p}</button>
+        {/each}
+      </div>
+      <p class="selection">{hud.selected.length ? 'Sends the selected Drones' : 'Sends all Drones'}; every route is checked first.</p>
+    </section>
+  {/if}
 </div>
 
 <footer class="dock">
@@ -117,8 +132,13 @@
     {/if}
   </div>
   <div class="panel hint">
-    <p>Click a Drone to select it, Shift-click to add one. Click the Room Twin to send them there.</p>
+    <p>
+      Click a Drone to select it, Shift-click to add one. Click the scan to send them there.
+      <span class="camera">Drag to orbit · right-drag to pan · scroll to zoom · arrow keys to move</span>
+    </p>
     <div class="keys">
+      <button class="key" aria-pressed={hud.holo} onclick={actions.toggleHolo}><kbd>H</kbd>Hologram</button>
+      <button class="key" onclick={actions.resetView}><kbd>V</kbd>Overview</button>
       <button class="key" onclick={actions.reset}><kbd>R</kbd>Reset</button>
       <button class="key" aria-pressed={hud.follow} onclick={actions.toggleFollow}><kbd>F</kbd>Follow</button>
       <button class="key abort" onclick={() => actions.abort('click')}><kbd>Esc</kbd>Abort</button>
@@ -408,6 +428,23 @@
     margin: 0;
     color: var(--ink-2);
     text-wrap: pretty;
+  }
+  .hint .camera {
+    display: block;
+    color: var(--ink-3);
+    font-size: 0.8rem;
+  }
+  .places h2 {
+    margin: 0 0 0.6rem;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .key.chip {
+    padding: 0 0.8rem;
+    text-transform: capitalize;
   }
   .keys {
     display: flex;

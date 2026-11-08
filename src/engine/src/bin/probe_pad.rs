@@ -11,8 +11,10 @@ const NEAR_M: f64 = 0.15;
 const LEVEL_MM: i64 = 60;
 const CLEAR_MIN_M: f64 = 0.6;
 const SEARCH_RADIUS_M: f64 = 2.0;
+/// Search grid step; 0.2 m keeps a 60 m floor scan to seconds.
+const SEARCH_STEP_M: f64 = 0.2;
 
-/// Floor heights sampled from near-horizontal mesh triangles (every 5 cm) below 0.4 m, binned in 10 cm cells.
+/// Floor heights sampled from near-horizontal mesh triangles (every 5 cm) within 0.4 m of FLOOR_Y, binned in 10 cm cells.
 fn floor_cells(mesh: &RoomMesh) -> HashMap<(i64, i64), Vec<f64>> {
     let v = &mesh.vertices;
     let mut cells: HashMap<(i64, i64), Vec<f64>> = HashMap::new();
@@ -21,7 +23,7 @@ fn floor_cells(mesh: &RoomMesh) -> HashMap<(i64, i64), Vec<f64>> {
         let (u, w) = ([0, 1, 2].map(|k| b[k] - a[k]), [0, 1, 2].map(|k| c[k] - a[k]));
         let n = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]];
         let len = (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]).sqrt();
-        if len == 0.0 || (n[1] / len).abs() < 0.9 || a[1] > 0.4 {
+        if len == 0.0 || (n[1] / len).abs() < 0.9 || (a[1] - FLOOR_Y).abs() > 0.4 {
             continue;
         }
         let longest = [u, w, [c[0] - b[0], c[1] - b[1], c[2] - b[2]]].iter().map(|e| (e[0] * e[0] + e[1] * e[1] + e[2] * e[2]).sqrt()).fold(0.0, f64::max);
@@ -132,9 +134,9 @@ fn search(cells: &HashMap<(i64, i64), Vec<f64>>, grid: &OccupancyGrid) {
                 let (level, free, clear) = evaluate(cells, grid, x, z, fy);
                 found.push((clear, x, z, fy, level.unwrap_or(9999), free));
             }
-            z += CELL;
+            z += SEARCH_STEP_M;
         }
-        x += CELL;
+        x += SEARCH_STEP_M;
     }
     found.retain(|c| c.4 <= LEVEL_MM && c.5 == 6 && c.0 >= CLEAR_MIN_M);
     found.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap().then(a.4.cmp(&b.4)));

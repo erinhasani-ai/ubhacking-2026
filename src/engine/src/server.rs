@@ -34,6 +34,9 @@ pub struct Config {
     pub hello: String,
     /// Room Twin point cloud as n,e,d triples; sent as one binary frame.
     pub cloud: Vec<f32>,
+    /// Room Twin surface for the holographic layer at `GET /api/mesh`: u32 vertex count, u32 triangle count,
+    /// then n,e,d f32 per vertex and three u32 indices per triangle (little-endian). Empty answers 404.
+    pub mesh: Vec<u8>,
     pub gcs: Arc<Gcs>,
     /// The Mission inbox. Answers come back on `verdicts`.
     pub inbox: Inbox,
@@ -47,6 +50,7 @@ pub struct Config {
 struct Shared {
     hello: String,
     cloud: Vec<u8>,
+    mesh: axum::body::Bytes,
     gcs: Arc<Gcs>,
     inbox: Inbox,
     verdicts: broadcast::Sender<(Source, Command, Verdict)>,
@@ -61,6 +65,7 @@ pub async fn serve(listener: TcpListener, cfg: Config) {
     let shared = Arc::new(Shared {
         hello: cfg.hello,
         cloud: cfg.cloud.iter().flat_map(|v| v.to_le_bytes()).collect(),
+        mesh: cfg.mesh.into(),
         gcs: cfg.gcs,
         inbox: cfg.inbox,
         verdicts: cfg.verdicts,
@@ -73,6 +78,10 @@ pub async fn serve(listener: TcpListener, cfg: Config) {
         .route("/api/tts", post(tts))
         .route("/api/stt", post(stt))
         .route("/api/accel", get(accel))
+        .route("/api/mesh", get(|State(s): State<Arc<Shared>>| async move {
+            if s.mesh.is_empty() { return StatusCode::NOT_FOUND.into_response(); }
+            ([(axum::http::header::CONTENT_TYPE, "application/octet-stream")], s.mesh.clone()).into_response()
+        }))
         .fallback(static_file)
         .with_state(shared);
     if let Err(e) = axum::serve(listener, app).await {

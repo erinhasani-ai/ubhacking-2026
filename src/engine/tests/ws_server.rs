@@ -102,7 +102,7 @@ async fn stream_protocol_end_to_end() {
         "pad": [[0, 0, 0]], "places": [{"name": "door", "n": 1.0, "e": 2.0, "d": 0.0}]});
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
-    tokio::spawn(serve(listener, Config { hello: hello.to_string(), cloud: cloud.clone(), gcs, inbox, verdicts, resets, static_dir: Some(dir.clone()) }));
+    tokio::spawn(serve(listener, Config { hello: hello.to_string(), cloud: cloud.clone(), mesh: Vec::new(), gcs, inbox, verdicts, resets, static_dir: Some(dir.clone()) }));
 
     let (mut ws, _) = connect_async(format!("ws://127.0.0.1:{port}/ws")).await.expect("connect");
 

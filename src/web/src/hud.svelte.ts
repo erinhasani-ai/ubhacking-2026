@@ -33,6 +33,10 @@ export const hud = $state({
   drones: [] as DroneRow[],
   selected: [] as number[],
   follow: false,
+  /** The holographic surface layer over the scan. */
+  holo: true,
+  /** Named Places from hello, for the Send-to buttons. */
+  places: [] as string[],
   verdict: null as null | VerdictLine,
   verdictVisible: false,
   /** The link dropped: Drones and link values are last-known until a fresh state frame arrives. */
