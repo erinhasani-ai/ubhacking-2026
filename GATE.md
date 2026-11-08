@@ -103,10 +103,10 @@ A ticket is not done until every one of its gates shows passing evidence here.
 
 ## T11 — Collision avoidance between Drones
 
-- [ ] T11.G1: ORCA matches known answers: two Drones head-on swap without coming closer than 2r, a six-Drone circle swap keeps every pair apart, and a lone Drone keeps its preferred velocity
+- [x] T11.G1: ORCA matches known answers: two Drones head-on swap without coming closer than 2r, a six-Drone circle swap keeps every pair apart, and a lone Drone keeps its preferred velocity
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core orca::
   EXPECT: /test result: ok\. [1-9]\d* passed/
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=707f31cfbbde16b2bf0e364825f74e5d64764805f4b559545f3cac29b844e579; exit=0; EXPECT=matched; output-sha256=36b690961804db377665b730f85a5c772fe4c98818599e97ea8097f750edd1f4; output-bytes=893; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026/.claude/worktrees/t11-orca; path=441ef2ff855b/30 entries
 ## T5 — phyphox spike
 
 - [x] T5.G1: The phyphox reply parser, on fixture replies, keeps only new samples and notices a changed session
