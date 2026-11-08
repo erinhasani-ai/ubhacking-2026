@@ -20,7 +20,13 @@ async fn main() -> Result<()> {
         }
     }
     dotenvy::dotenv().ok();
-    let scan = std::env::var("ROOM_SCAN_PATH").context("ROOM_SCAN_PATH is not set")?;
+    // Release layout: the scan as `room.obj` and the UI in `web/` next to the binary; env vars and dev paths win first.
+    let exe_dir = std::env::current_exe().ok().and_then(|p| p.parent().map(PathBuf::from));
+    let scan = std::env::var("ROOM_SCAN_PATH")
+        .ok()
+        .filter(|s| !s.is_empty())
+        .or_else(|| exe_dir.as_ref().map(|d| d.join("room.obj")).filter(|p| p.exists()).map(|p| p.display().to_string()))
+        .context("ROOM_SCAN_PATH is not set and there is no room.obj next to aether")?;
     let mesh = load_obj(&std::fs::read(scan).context("reading the Room Twin")?)?;
     let grid = Arc::new(OccupancyGrid::from_mesh(&mesh, 0.1).map_err(anyhow::Error::msg)?);
     eprintln!("aether: scan loaded; preparing distance field");
@@ -62,7 +68,10 @@ async fn main() -> Result<()> {
     let mission = mission::spawn_with_reset(Arc::clone(&gcs), field,
         |name| places::find(name).map(|p| [p.x, p.y, p.z]),
         move || { for (i, drone) in simulated.iter().enumerate() { drone.reset_to(frame::pad_slot(i)); } });
-    let static_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../web/dist");
+    let static_dir = std::env::var_os("AETHER_WEB_DIR")
+        .map(PathBuf::from)
+        .or_else(|| exe_dir.as_ref().map(|d| d.join("web")).filter(|d| d.join("index.html").exists()))
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../web/dist"));
     println!("aether_ready url=http://{address} drones=6 provenance=SIM");
     tokio::select! {
         _ = server::serve(listener, server::Config {
