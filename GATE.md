@@ -100,3 +100,10 @@ A ticket is not done until every one of its gates shows passing evidence here.
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo build --workspace && PATH="$HOME/.cargo/bin:$PATH" cargo build -p aether-wasm --target wasm32-unknown-unknown && echo "build"_ok
   EXPECT: build_ok
   EVIDENCE: automatic-evidence=v1; definition-sha256=265ddc570007970cd30af7a31f591985c85c3c469b7cf46e67a4a783d735b3c5; exit=0; EXPECT=matched; output-sha256=f79d7c9d2655adda1b2e7aeb2ff4e62ce74e50bdd9b02ee0e22d5682278b05dc; output-bytes=154; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
+
+## T11 — Collision avoidance between Drones
+
+- [ ] T11.G1: ORCA matches known answers: two Drones head-on swap without coming closer than 2r, a six-Drone circle swap keeps every pair apart, and a lone Drone keeps its preferred velocity
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core orca::
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: pending
