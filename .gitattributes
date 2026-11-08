@@ -1,3 +1,4 @@
 # Append-only ledgers: every ticket branch adds its own section or line at the end; keep both sides on merge.
-GATE.md merge=union
+# filter=nohome (a clean filter in .git/config) strips the home folder from unlazy evidence paths when staged.
+GATE.md merge=union filter=nohome
 PROGRESS.md merge=union
