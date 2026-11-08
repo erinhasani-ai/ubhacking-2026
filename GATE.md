@@ -100,3 +100,15 @@ A ticket is not done until every one of its gates shows passing evidence here.
   CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo build --workspace && PATH="$HOME/.cargo/bin:$PATH" cargo build -p aether-wasm --target wasm32-unknown-unknown && echo "build"_ok
   EXPECT: build_ok
   EVIDENCE: automatic-evidence=v1; definition-sha256=265ddc570007970cd30af7a31f591985c85c3c469b7cf46e67a4a783d735b3c5; exit=0; EXPECT=matched; output-sha256=f79d7c9d2655adda1b2e7aeb2ff4e62ce74e50bdd9b02ee0e22d5682278b05dc; output-bytes=154; shell=/bin/sh; cwd=/Users/erinhasani/Documents/UBHacking2026; path=441ef2ff855b/30 entries
+
+## T10 — Distance field and 3D path search
+
+- [ ] T10.G1: The distance field equals brute force on small grids, and the path search gives the straight-line length in an empty box, the known detour around a wall, no path through occupied cells, and reports an unreachable goal
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo test -p aether-core planner::
+  EXPECT: /test result: ok\. [1-9]\d* passed/
+  EVIDENCE: pending
+
+- [ ] T10.G2: On the real scan, a path across the room keeps at least 0.35 m clearance everywhere, and its length, the straight-line distance and the search time are reported
+  CHECK: PATH="$HOME/.cargo/bin:$PATH" cargo run -q -p aether-engine --bin probe_path
+  EXPECT: /path_ok length_m=\d+\.\d+ straight_m=\d+\.\d+ min_clearance_m=(0\.(3[5-9]|[4-9]\d)|[1-9])\d* ms=\d+/
+  EVIDENCE: pending
