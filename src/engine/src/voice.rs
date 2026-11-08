@@ -124,6 +124,48 @@ pub async fn speak(sentence: &str) -> Result<Speech> {
     parse_tts_reply(&body)
 }
 
+/// Speaks text as MP3 for the browser to play (campus page, T32). Same key and voice as `speak`.
+pub async fn speak_mp3(text: &str) -> Result<Vec<u8>> {
+    let key = std::env::var("ELEVENLABS_API_KEY").context("ELEVENLABS_API_KEY not set")?;
+    let voice = std::env::var("ELEVENLABS_VOICE_ID").context("ELEVENLABS_VOICE_ID not set")?;
+    let url = format!("https://api.elevenlabs.io/v1/text-to-speech/{voice}?output_format=mp3_44100_128");
+    let res = reqwest::Client::new()
+        .post(url)
+        .header("xi-api-key", key)
+        .json(&json!({ "text": text }))
+        .send()
+        .await
+        .map_err(|e| anyhow!("TTS request failed: {}", e.without_url()))?;
+    let status = res.status();
+    let body = res.bytes().await.map_err(|e| anyhow!("TTS body read failed: {}", e.without_url()))?;
+    if !status.is_success() {
+        bail!("TTS HTTP {status}: {}", String::from_utf8_lossy(&body));
+    }
+    Ok(body.to_vec())
+}
+
+/// One recorded utterance to text with Scribe v2 batch (elevenlabs.io/docs/api-reference/speech-to-text/convert).
+pub async fn transcribe(audio: Vec<u8>, mime: &str) -> Result<String> {
+    let key = std::env::var("ELEVENLABS_API_KEY").context("ELEVENLABS_API_KEY not set")?;
+    let ext = if mime.contains("wav") { "wav" } else if mime.contains("mp4") { "m4a" } else if mime.contains("ogg") { "ogg" } else { "webm" };
+    let part = reqwest::multipart::Part::bytes(audio).file_name(format!("utterance.{ext}")).mime_str(mime)?;
+    let form = reqwest::multipart::Form::new().text("model_id", "scribe_v2").part("file", part);
+    let res = reqwest::Client::new()
+        .post("https://api.elevenlabs.io/v1/speech-to-text")
+        .header("xi-api-key", key)
+        .multipart(form)
+        .send()
+        .await
+        .map_err(|e| anyhow!("STT request failed: {}", e.without_url()))?;
+    let status = res.status();
+    let body = res.text().await.map_err(|e| anyhow!("STT body read failed: {}", e.without_url()))?;
+    if !status.is_success() {
+        bail!("STT HTTP {status}: {body}");
+    }
+    let v: Value = serde_json::from_str(&body).context("STT reply is not JSON")?;
+    Ok(v["text"].as_str().context("STT reply has no text")?.trim().to_string())
+}
+
 type Ws = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
 /// A Scribe v2 Realtime session with manual commit and word timestamps.

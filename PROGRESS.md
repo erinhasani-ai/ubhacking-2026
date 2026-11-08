@@ -2,6 +2,8 @@
 
 Format: `YYYY-MM-DD | Tn | what shipped | gate result`
 
+- 2026-11-08 | T32/T33 (MVP) | Campus page: UB North Campus from OpenStreetMap (291 buildings), five teams of six simulated Drones on five pads (4 suppression + 2 alert each, all scout), hands-free voice through engine /api/stt (ElevenLabs Scribe v2) and /api/tts, simulated fire and earthquake response, data-stream pings and panel, phone accelerometer trigger through /api/accel (LIVE when phyphox is reachable) | node tests/campus_sim.mjs passes (grammar, fire detect/alert/contain/out, quake detect/survey); live STT 0.77 s and TTS 0.57 s by curl; headed Chrome 50-60 fps. Not formal unlazy gates (user asked for MVP testing). Unverified: hands-free speech detection on a real mic, phone trigger (phone unreachable during testing).
+
 - 2026-11-08 | T14 | Local `aether` runtime shares the real scan with six simulated MAVLink endpoints; WebSocket hello/cloud/30 Hz state/real Verdicts, static UI serving, duplicate-command rejection, and immediate SIM reset with queued/planned work and retries cancelled | Ticket-scoped gate-check --reverify exit 0, T14.G1–G3 met: protocol integration, actual-engine dispatch/rejection/climb/reset-within-5-s/redispatch, 36 engine unit tests. Existing real-scan mission/Abort/landing integration passed. Phone recheck still times out.
 
 - 2026-11-08 | T13 | Recovered policy and mission controller; asynchronous route planning, shortest assignment, ORCA-shaped setpoints and priority Abort; fixed arrival-to-follow-up-command race and protected newer plans from pre-Abort results | Ticket-scoped gate-check --reverify exit 0, T13.G1–G3 met: 14 policy tests, 6 mission tests, real-scan two-Drone dispatch/obstacle rejection/separation/Abort/landing integration. No hardware flight.

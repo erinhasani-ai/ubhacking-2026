@@ -1,0 +1,83 @@
+/* Aether field instrument: deep navy ground, translucent blue Room Twin, one blue accent. */
+:root {
+  --ground: #070d14;
+  --panel: rgba(9, 18, 29, 0.92);
+  --panel-solid: #09121d;
+  --hairline: rgba(236, 231, 223, 0.1);
+  --hairline-strong: rgba(236, 231, 223, 0.18);
+  --wash: rgba(236, 231, 223, 0.06);
+  --wash-press: rgba(236, 231, 223, 0.1);
+  --ink: #e4eff8;
+  --ink-2: #acbecf;
+  --ink-3: #8f9faf;
+  --accent: #58baff; /* holographic blue: selection, the active Command, Abort */
+  --accent-ink: #061220;
+
+  --font-text: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-data: 'Geist Mono Variable', ui-monospace, Menlo, monospace;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --gutter: 1.25rem;
+  --tap: max(44px, 2.75rem);
+
+  font-size: 15px;
+  color-scheme: dark;
+}
+
+/* An external display gets a larger HUD; the layout itself does not change. */
+@media (min-width: 2200px) {
+  :root {
+    font-size: 18px;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(88, 186, 255, 0.35);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'zero' 0;
+  letter-spacing: 0;
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --panel: var(--panel-solid);
+    --hairline: rgba(236, 231, 223, 0.35);
+    --ink-2: #d6d0c6;
+    --ink-3: #c4bdb2;
+  }
+}
